@@ -1,0 +1,239 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <style>
+      .bg { fill: #f9fafb; }
+      .card { fill: #ffffff; stroke: #e5e7eb; stroke-width: 1; }
+      .text-title { fill: #111827; font-size: 20px; font-weight: bold; }
+      .text-label { fill: #374151; font-size: 13px; }
+      .text-value { fill: #111827; font-size: 13px; font-weight: bold; }
+      .text-muted { fill: #9ca3af; font-size: 12px; }
+      .btn-primary { fill: #2563eb; }
+      .btn-primary-text { fill: #ffffff; font-size: 13px; font-weight: 600; }
+      .btn-secondary { fill: #e5e7eb; }
+      .btn-secondary-text { fill: #374151; font-size: 13px; font-weight: 600; }
+      .badge { rx: 999; }
+      .input-box { fill: #ffffff; stroke: #d1d5db; stroke-width: 1; rx: 6; }
+      .table-header { fill: #f9fafb; }
+      .table-row { fill: #ffffff; }
+      .table-row-alt { fill: #f9fafb; }
+      .table-border { stroke: #e5e7eb; stroke-width: 1; }
+      .accent-blue { fill: #dbeafe; }
+      .accent-green { fill: #d1fae5; }
+      .icon-box { fill: #eff6ff; }
+      .positive { fill: #059669; }
+      .negative { fill: #dc2626; }
+      .modal-bg { fill: rgba(0,0,0,0.5); }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1200" height="900" rx="0"/>
+
+  <!-- Desktop Layout -->
+  <text x="24" y="36" class="text-title">Gestión de Precios</text>
+  <text x="24" y="56" class="text-muted">Actualización masiva basada en peso del acero</text>
+
+  <!-- Filters Section -->
+  <rect class="card" x="24" y="72" width="1152" height="100" rx="8"/>
+
+  <text x="40" y="96" class="text-label" font-weight="bold">Filtros</text>
+
+  <!-- Filter: Department -->
+  <rect class="input-box" x="40" y="106" width="160" height="32"/>
+  <text x="48" y="126" class="text-muted">Departamento</text>
+  <text x="180" y="126" class="text-value">▼</text>
+
+  <!-- Filter: Category -->
+  <rect class="input-box" x="216" y="106" width="160" height="32"/>
+  <text x="224" y="126" class="text-muted">Categoría</text>
+  <text x="356" y="126" class="text-value">▼</text>
+
+  <!-- Filter: SKU Prefix -->
+  <rect class="input-box" x="392" y="106" width="140" height="32"/>
+  <text x="400" y="126" class="text-muted">Prefijo SKU</text>
+
+  <!-- Filter: Weight Range -->
+  <rect class="input-box" x="548" y="106" width="80" height="32"/>
+  <text x="556" y="126" class="text-muted">Peso min</text>
+  <rect class="input-box" x="636" y="106" width="80" height="32"/>
+  <text x="644" y="126" class="text-muted">Peso max</text>
+
+  <!-- Filter: Active toggle -->
+  <rect class="badge accent-green" x="740" y="106" width="100" height="32"/>
+  <text x="755" y="126" class="text-value" fill="#059669">● Activos</text>
+
+  <!-- Params Section -->
+  <rect class="card" x="24" y="184" width="1152" height="120" rx="8"/>
+
+  <text x="40" y="208" class="text-label" font-weight="bold">Parámetros de cálculo</text>
+
+  <!-- Steel price -->
+  <rect class="input-box" x="40" y="220" width="160" height="32"/>
+  <text x="48" y="240" class="text-muted">Precio acero (MXN/kg)</text>
+  <text x="140" y="240" class="text-value">25.00</text>
+
+  <!-- Logistics factor -->
+  <rect class="input-box" x="216" y="220" width="140" height="32"/>
+  <text x="224" y="240" class="text-muted">Factor logístico</text>
+  <text x="310" y="240" class="text-value">1.15</text>
+
+  <!-- Tax -->
+  <rect class="input-box" x="372" y="220" width="120" height="32"/>
+  <text x="380" y="240" class="text-muted">Impuesto %</text>
+  <text x="450" y="240" class="text-value">16.0%</text>
+
+  <!-- Margin override -->
+  <rect class="input-box" x="508" y="220" width="140" height="32"/>
+  <text x="516" y="240" class="text-muted">Margen global</text>
+  <text x="600" y="240" class="text-value">20.0%</text>
+
+  <!-- Action buttons -->
+  <rect class="btn-primary" x="850" y="216" width="120" height="36" rx="6"/>
+  <text x="882" y="240" class="btn-primary-text">Simular</text>
+
+  <rect class="btn-primary" x="985" y="216" width="120" height="36" rx="6"/>
+  <text x="1012" y="240" class="btn-primary-text">Aplicar</text>
+
+  <!-- Preview Table -->
+  <rect class="card" x="24" y="316" width="1152" height="320" rx="8"/>
+
+  <text x="40" y="344" class="text-label" font-weight="bold">
+    Vista previa — 20 productos afectados
+  </text>
+
+  <!-- Table header -->
+  <rect class="table-header" x="40" y="356" width="1120" height="32" rx="4"/>
+  <text x="56" y="376" class="text-value">SKU</text>
+  <text x="200" y="376" class="text-value">Nombre</text>
+  <text x="420" y="376" class="text-value">Peso (kg)</text>
+  <text x="520" y="376" class="text-value">Costo</text>
+  <text x="610" y="376" class="text-value">Precio Actual</text>
+  <text x="740" y="376" class="text-value">Precio Nuevo</text>
+  <text x="870" y="376" class="text-value">Delta $</text>
+  <text x="970" y="376" class="text-value">Delta %</text>
+
+  <!-- Row 1 -->
+  <rect class="table-row" x="40" y="388" width="1120" height="28"/>
+  <text x="56" y="407" class="text-value" font-family="monospace">TUB-1</text>
+  <text x="200" y="407" class="text-label">TUBO REDONDO CED 40 1</text>
+  <text x="430" y="407" class="text-value">5.44</text>
+  <text x="530" y="407" class="text-value">$185.00</text>
+  <text x="620" y="407" class="text-value">$277.50</text>
+  <text x="750" y="407" class="text-value">$312.45</text>
+  <text x="875" y="407" class="positive">+$34.95</text>
+  <text x="975" y="407" class="positive">+12.6%</text>
+
+  <!-- Row 2 -->
+  <rect class="table-row-alt" x="40" y="416" width="1120" height="28"/>
+  <text x="56" y="435" class="text-value" font-family="monospace">TUB-2</text>
+  <text x="200" y="435" class="text-label">TUBO REDONDO CED 40 2</text>
+  <text x="430" y="435" class="text-value">10.88</text>
+  <text x="530" y="435" class="text-value">$450.00</text>
+  <text x="620" y="435" class="text-value">$675.00</text>
+  <text x="750" y="435" class="text-value">$789.50</text>
+  <text x="875" y="435" class="positive">+$114.50</text>
+  <text x="975" y="435" class="positive">+17.0%</text>
+
+  <!-- Row 3 -->
+  <rect class="table-row" x="40" y="444" width="1120" height="28"/>
+  <text x="56" y="463" class="text-value" font-family="monospace">VAR-3/8</text>
+  <text x="200" y="463" class="text-label">VARILLA CORRUGADA 3/8</text>
+  <text x="430" y="463" class="text-value">0.99</text>
+  <text x="530" y="463" class="text-value">$12.50</text>
+  <text x="620" y="463" class="text-value">$18.75</text>
+  <text x="750" y="463" class="text-value">$22.10</text>
+  <text x="875" y="463" class="positive">+$3.35</text>
+  <text x="975" y="463" class="positive">+17.9%</text>
+
+  <!-- Row 4 -->
+  <rect class="table-row-alt" x="40" y="472" width="1120" height="28"/>
+  <text x="56" y="491" class="text-value" font-family="monospace">PLA-1/4</text>
+  <text x="200" y="491" class="text-label">LAMINA LISA 1/4 4X8</text>
+  <text x="430" y="491" class="text-value">90.72</text>
+  <text x="530" y="491" class="text-value">$1,650.00</text>
+  <text x="620" y="491" class="text-value">$2,475.00</text>
+  <text x="750" y="491" class="text-value">$2,890.00</text>
+  <text x="875" y="491" class="positive">+$415.00</text>
+  <text x="975" y="491" class="positive">+16.8%</text>
+
+  <!-- Row 5 -->
+  <rect class="table-row" x="40" y="500" width="1120" height="28"/>
+  <text x="56" y="519" class="text-value" font-family="monospace">SOL-6013</text>
+  <text x="200" y="519" class="text-label">ELECTRODO E6013 1/8</text>
+  <text x="430" y="519" class="text-value">0.05</text>
+  <text x="530" y="519" class="text-value">$35.00</text>
+  <text x="620" y="519" class="text-value">$52.50</text>
+  <text x="750" y="519" class="text-value" fill="#dc2626">$42.80</text>
+  <text x="875" y="519" class="negative">-$9.70</text>
+  <text x="975" y="519" class="negative">-18.5%</text>
+
+  <!-- Summary footer -->
+  <rect x="40" y="540" width="1120" height="32" fill="#f0fdf4" rx="4"/>
+  <text x="56" y="560" class="text-value" fill="#059669">
+    ● 19 productos aumentan | 1 producto disminuye | 0 errores
+  </text>
+  <text x="900" y="560" class="text-value">
+    Total delta: +$12,450.00
+  </text>
+
+  <!-- Pagination -->
+  <text x="400" y="620" class="text-muted">Mostrando 1-5 de 20</text>
+  <rect class="btn-secondary" x="520" y="606" width="32" height="28" rx="4"/>
+  <text x="535" y="626" class="btn-secondary-text">‹</text>
+  <rect class="btn-primary" x="560" y="606" width="32" height="28" rx="4"/>
+  <text x="575" y="626" class="btn-primary-text">1</text>
+  <rect class="btn-secondary" x="600" y="606" width="32" height="28" rx="4"/>
+  <text x="615" y="626" class="btn-secondary-text">2</text>
+  <rect class="btn-secondary" x="640" y="606" width="32" height="28" rx="4"/>
+  <text x="655" y="626" class="btn-secondary-text">3</text>
+  <rect class="btn-secondary" x="680" y="606" width="32" height="28" rx="4"/>
+  <text x="695" y="626" class="btn-secondary-text">›</text>
+
+  <!-- Mobile Mockup -->
+  <rect class="card" x="860" y="660" width="300" height="220" rx="12"/>
+  <text x="880" y="686" class="text-label" font-weight="bold">Mobile (responsive)</text>
+  <text x="880" y="706" class="text-muted" font-size="11px">
+    En móvil: filtros colapsables, tabla con scroll horizontal,
+    paginación simplificada, botones de acción flotantes.
+  </text>
+
+  <!-- Mobile preview elements -->
+  <rect class="input-box" x="880" y="720" width="260" height="28"/>
+  <text x="888" y="739" class="text-muted" font-size="11px">Buscar SKU, nombre...</text>
+
+  <rect class="btn-primary" x="880" y="756" width="260" height="32" rx="6"/>
+  <text x="990" y="776" class="btn-primary-text" font-size="11px">Simular precios</text>
+
+  <text x="880" y="806" class="text-muted" font-size="11px">20 productos afectados · Delta: +$12,450</text>
+  <rect class="btn-secondary" x="880" y="816" width="120" height="28" rx="4"/>
+  <text x="917" y="835" class="btn-secondary-text" font-size="10px">Ver detalle</text>
+  <rect class="btn-primary" x="1020" y="816" width="120" height="28" rx="4"/>
+  <text x="1057" y="835" class="btn-primary-text" font-size="10px">Aplicar</text>
+
+  <!-- Confirmation Modal -->
+  <rect class="modal-bg" x="0" y="0" width="1200" height="900"/>
+
+  <rect class="card" x="340" y="240" width="520" height="340" rx="12"/>
+
+  <text x="370" y="280" class="text-title">Confirmar actualización de precios</text>
+  <text x="370" y="306" class="text-label">Se aplicarán cambios a 20 productos</text>
+
+  <rect x="370" y="322" width="460" height="80" rx="6" fill="#f0fdf4"/>
+  <text x="386" y="344" class="text-value" fill="#059669">Resumen</text>
+  <text x="386" y="364" class="text-label" font-size="12px">Precio acero: $25.00/kg</text>
+  <text x="386" y="380" class="text-label" font-size="12px">Factor logístico: 1.15 · Impuesto: 16%</text>
+  <text x="386" y="396" class="text-label" font-size="12px">Margen: 20% · Delta total: +$12,450.00</text>
+
+  <rect x="370" y="418" width="460" height="60" rx="6" fill="#fef2f2"/>
+  <text x="386" y="438" class="text-value" fill="#dc2626">⚠️ Antes de continuar</text>
+  <text x="386" y="456" class="text-label" font-size="12px">Se recomienda crear un snapshot de la tabla products.</text>
+  <text x="386" y="472" class="text-label" font-size="12px">¿Crear orden de compra para productos con stock bajo?</text>
+
+  <rect x="370" y="496" width="20" height="20" rx="4" stroke="#d1d5db" stroke-width="1.5" fill="none"/>
+  <text x="398" y="512" class="text-label" font-size="12px">Crear orden de compra para faltantes</text>
+
+  <rect class="btn-secondary" x="560" y="540" width="120" height="36" rx="6"/>
+  <text x="600" y="563" class="btn-secondary-text">Cancelar</text>
+
+  <rect class="btn-primary" x="700" y="540" width="120" height="36" rx="6"/>
+  <text x="742" y="563" class="btn-primary-text">Confirmar</text>
+</svg>

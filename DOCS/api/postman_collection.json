@@ -1,0 +1,260 @@
+{
+  "info": {
+    "name": "FerreCRM API",
+    "description": "Colección de endpoints para FerreCRM - Ventas, Compras, Almacén y Price Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "jwt_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set('jwt_token', jsonData.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"gerencia@ferrecrm.com\",\n  \"password\": \"gerencia123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/products?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Price Management",
+      "item": [
+        {
+          "name": "Preview Price Update",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filter\": {\n    \"department_id\": 1\n  },\n  \"params\": {\n    \"precio_acero_mxn_per_kg\": 25.0,\n    \"factor_logistico\": 1.15,\n    \"impuestos_pct\": 0.16\n  },\n  \"margin_override\": 0.25\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/price-management/preview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "price-management", "preview"]
+            }
+          }
+        },
+        {
+          "name": "Apply Price Update",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filter\": {\n    \"department_id\": 1\n  },\n  \"params\": {\n    \"precio_acero_mxn_per_kg\": 25.0,\n    \"factor_logistico\": 1.15,\n    \"impuestos_pct\": 0.16\n  },\n  \"margin_override\": 0.25,\n  \"reason\": \"Actualización mensual precios acero\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/price-management/apply",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "price-management", "apply"]
+            }
+          }
+        },
+        {
+          "name": "Get Job Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/price-management/jobs/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "price-management", "jobs", "1"]
+            }
+          }
+        },
+        {
+          "name": "List Jobs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/price-management/jobs?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "price-management", "jobs"],
+              "query": [
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rollback Price Update",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"job_id\": 1,\n  \"reason\": \"Error en calculo de precio\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/price-management/rollback",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "price-management", "rollback"]
+            }
+          }
+        },
+        {
+          "name": "Update Single Product Margin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"margin\": 0.30,\n  \"reason\": \"Ajuste por promocion\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/price-management/products/PROD-001/margin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "price-management", "products", "PROD-001", "margin"]
+            }
+          }
+        },
+        {
+          "name": "Bulk Margin Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filter\": {\n    \"department_id\": 1\n  },\n  \"margin\": 0.22,\n  \"reason\": \"Ajuste masivo margenes\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/price-management/products/bulk-margin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "price-management", "products", "bulk-margin"]
+            }
+          }
+        },
+        {
+          "name": "Get Price History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/price-management/products/PROD-001/price-history?limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "price-management", "products", "PROD-001", "price-history"],
+              "query": [
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ML",
+      "item": [
+        {
+          "name": "Price Suggestion",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"TUB-001\",\n  \"costo_mxn\": 150.0,\n  \"peso_kg\": 5.5,\n  \"department_id\": 1,\n  \"historical_price\": 250.0\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/ml/price-suggestion",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ml", "price-suggestion"]
+            }
+          }
+        },
+        {
+          "name": "Export Dataset",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/ml/export/dataset?model_type=price_history&format=json",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ml", "export", "dataset"],
+              "query": [
+                { "key": "model_type", "value": "price_history" },
+                { "key": "format", "value": "json" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
