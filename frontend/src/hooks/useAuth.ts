@@ -1,44 +1,42 @@
-import { useState, useEffect, createContext, useContext } from 'react'
-import type { User } from '../types'
-import { getStoredUser, login as apiLogin, logout as apiLogout } from '../services/auth'
-
-interface AuthContextType {
-  user: User | null
-  login: (email: string, password: string) => Promise<void>
-  logout: () => void
-  isAuthenticated: boolean
-  hasRole: (...roles: string[]) => boolean
-}
-
-const AuthContext = createContext<AuthContextType | null>(null)
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(getStoredUser)
-
-  const login = async (email: string, password: string) => {
-    const res = await apiLogin(email, password)
-    setUser(res.user)
-  }
-
-  const logout = () => {
-    apiLogout()
-    setUser(null)
-  }
-
-  const hasRole = (...roles: string[]) => {
-    if (!user?.role) return false
-    return roles.includes(user.role.name)
-  }
-
-  return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, hasRole }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
+import { useRouter } from 'next/navigation'
+import { useMutation } from '@tanstack/react-query'
+import api from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
+import type { LoginCredentials, LoginResponse } from '@/types'
 
 export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
+  const { user, token, setAuth, logout, isAuthenticated } = useAuthStore()
+  const router = useRouter()
+
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginCredentials) => {
+      const form = new URLSearchParams()
+      form.append('username', credentials.email)
+      form.append('password', credentials.password)
+      const { data } = await api.post<LoginResponse>('/api/v1/auth/login', form, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      })
+      return data
+    },
+    onSuccess: (data) => {
+      setAuth(data.user, data.access_token)
+      router.push('/dashboard')
+    },
+  })
+
+  const handleLogout = () => {
+    logout()
+    router.push('/login')
+  }
+
+  return {
+    user,
+    token,
+    isAuthenticated: isAuthenticated(),
+    login: loginMutation.mutate,
+    loginAsync: loginMutation.mutateAsync,
+    isLoggingIn: loginMutation.isPending,
+    loginError: loginMutation.error,
+    logout: handleLogout,
+  }
 }

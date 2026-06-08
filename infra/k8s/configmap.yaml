@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: freelux-config
+  namespace: freelux-crm
+  labels:
+    app.kubernetes.io/name: freelux-crm
+data:
+  ENVIRONMENT: "staging"
+  LOG_LEVEL: "info"
+  ALLOWED_HOSTS: "crm.freelux.mx,localhost"
+  CORS_ORIGINS: "https://crm.freelux.mx"
+  DATABASE_HOST: "postgres-service"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "freelux_crm"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  CELERY_BROKER_URL: "redis://redis-service:6379/1"
+  CELERY_RESULT_BACKEND: "redis://redis-service:6379/2"
+  ELASTICSEARCH_URL: "http://elasticsearch-service:9200"
+  MAX_CONNECTIONS: "20"
+  POOL_SIZE: "10"

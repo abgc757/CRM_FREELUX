@@ -1,0 +1,59 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "freelux-crm"
+    environment: "development"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files:
+  # - "alerts/*.yml"
+
+scrape_configs:
+  # ── Prometheus self-monitoring ─────────────────────────────────
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ── FastAPI Backend ────────────────────────────────────────────
+  - job_name: "freelux_backend"
+    static_configs:
+      - targets: ["backend:8000"]
+    metrics_path: /metrics
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # ── PostgreSQL (via postgres_exporter) ─────────────────────────
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres_exporter:9187"]
+    scrape_interval: 30s
+
+  # ── Redis (via redis_exporter) ─────────────────────────────────
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis_exporter:9121"]
+    scrape_interval: 15s
+
+  # ── Celery (via Flower) ────────────────────────────────────────
+  - job_name: "celery_flower"
+    static_configs:
+      - targets: ["flower:5555"]
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # ── Nginx ──────────────────────────────────────────────────────
+  - job_name: "nginx"
+    static_configs:
+      - targets: ["nginx_exporter:9113"]
+    scrape_interval: 15s
+
+  # ── Node exporter (host metrics) ──────────────────────────────
+  - job_name: "node"
+    static_configs:
+      - targets: ["node_exporter:9100"]
+    scrape_interval: 30s

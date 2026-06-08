@@ -1,177 +1,136 @@
+export type Role = 'admin' | 'gerente' | 'ventas' | 'compras' | 'almacen'
+
 export interface User {
-  id: number
+  id: string
   nombre: string
   email: string
-  role_id: number
-  role?: Role
-  vendedor_id?: number
-  is_active: boolean
-  phone?: string
-  created_at: string
-}
-
-export interface Role {
-  id: number
-  name: string
-  description?: string
-  permissions: string
+  role: Role
 }
 
 export interface Client {
-  id: number
+  id: string
   nombre: string
   rfc: string
-  email?: string
-  phone?: string
-  contact_name?: string
-  address?: string
-  city?: string
-  state?: string
-  zip_code?: string
-  owner_user_id: number
-  credit_limit: number
-  is_active: boolean
-  notes?: string
-  created_at: string
-  updated_at: string
+  telefono: string
+  email: string
+  ciudad: string
+  owner_user_id: string
 }
 
 export interface Product {
-  id: number
+  id: string
   sku: string
-  clave_alterna?: string
   nombre: string
-  descripcion?: string
-  servicio: boolean
-  department?: Department
-  category?: Category
+  familia: string
+  categoria: string
+  peso_kg: number
   costo: number
-  precio_venta: number
-  stock: number
-  peso: number
-  is_active: boolean
-  version: number
-}
-
-export interface Department {
-  id: number
-  name: string
-  description?: string
-}
-
-export interface Category {
-  id: number
-  name: string
-  department_id: number
-}
-
-export interface Quote {
-  id: number
-  folio: string
-  cliente_id: number
-  vendedor_id: number
-  subtotal: number
-  descuento: number
-  impuesto: number
-  total: number
-  validez_dias: number
-  estado: string
-  requires_price_approval: boolean
-  price_approval_status: string
-  is_active: boolean
-  cliente?: Client
-  vendedor?: User
-  items: QuoteItem[]
-  created_at: string
-  updated_at: string
+  precio_1: number
+  precio_2: number
+  precio_3: number
+  precio_4: number
+  existencia: number
+  inv_min: number
+  tiene_impuesto: boolean
 }
 
 export interface QuoteItem {
-  id: number
-  product_id: number
+  product_id: string
+  descripcion: string
   cantidad: number
   precio_unitario: number
-  descuento: number
-  subtotal: number
+  importe: number
   product?: Product
 }
 
-export interface Sale {
-  id: number
-  folio: string
-  quote_id?: number
-  cliente_id: number
-  vendedor_id: number
-  total: number
-  factura_solicitada: boolean
-  estado: string
-  items: SaleItem[]
-  remissions: Remission[]
-  created_at: string
-}
-
-export interface SaleItem {
-  id: number
-  product_id: number
-  cantidad: number
-  precio_unitario: number
+export interface Quote {
+  id: string
+  folio: number
+  cliente_id: string
+  vendedor_id: string
+  fecha_validez: string
+  moneda: string
+  estado: 'borrador' | 'enviada' | 'aprobada' | 'rechazada' | 'convertida'
   subtotal: number
+  iva: number
+  total: number
+  items: QuoteItem[]
+  cliente?: Client
 }
 
-export interface Remission {
-  id: number
-  folio: string
-  sale_id: number
+export interface Sale {
+  id: string
+  quote_id: string
+  tipo_documento: 'factura' | 'nota_venta' | 'remision'
   estado: string
-  created_at: string
+  total: number
 }
 
 export interface Supplier {
-  id: number
+  id: string
   nombre: string
-  rfc: string
-  email?: string
-  phone?: string
-  tiempo_entrega_promedio: number
+  familias: string[]
+  tiempo_entrega_promedio_dias: number
   fiabilidad_score: number
-  distancia_km: number
-  familias: string
-  is_active: boolean
+  ciudad: string
+  estado_mx: string
 }
 
 export interface Purchase {
-  id: number
-  folio: string
-  supplier_id: number
-  user_id: number
-  total: number
+  id: string
+  supplier_id: string
   estado: string
-  eta?: string
-  items: PurchaseItem[]
-  created_at: string
-}
-
-export interface PurchaseItem {
-  id: number
-  product_id: number
-  cantidad: number
-  precio_unitario: number
-  subtotal: number
+  fecha_esperada: string
+  total: number
+  supplier?: Supplier
 }
 
 export interface InventoryMovement {
-  id: number
-  product_id: number
-  warehouse_id: number
+  id: string
+  product_id: string
+  tipo: 'entrada' | 'salida' | 'ajuste' | 'devolucion'
   cantidad: number
-  tipo: 'entrada' | 'salida' | 'ajuste'
-  referencia?: string
-  notes?: string
-  user_id: number
+  created_at: string
+  product?: Product
+}
+
+export interface PriceRequest {
+  id: string
+  quote_id: string
+  product_id: string
+  vendedor_id: string
+  precio_solicitado: number
+  precio_actual: number
+  motivo: string
+  estado: 'pendiente' | 'aprobada' | 'rechazada'
   created_at: string
 }
 
-export interface AuthResponse {
+export interface DashboardStats {
+  cotizaciones_pendientes?: number
+  clientes_total?: number
+  ventas_mes?: number
+  ordenes_pendientes?: number
+  solicitudes_disponibilidad?: number
+  productos_bajo_minimo?: number
+  movimientos_hoy?: number
+  solicitudes_precio_pendientes?: number
+}
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  per_page: number
+  pages: number
+}
+
+export interface LoginCredentials {
+  email: string
+  password: string
+}
+
+export interface LoginResponse {
   access_token: string
   token_type: string
   user: User

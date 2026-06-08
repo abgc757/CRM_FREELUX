@@ -1,86 +1,64 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel
+
+from app.models.quote import QuoteStatus
 
 
-class QuoteItemCreate(BaseModel):
-    product_id: int
+class QuoteItemBase(BaseModel):
+    product_id: Optional[UUID] = None
+    descripcion: str
     cantidad: float
     precio_unitario: float
-    descuento: Optional[float] = 0.0
+
+
+class QuoteItemCreate(QuoteItemBase):
+    pass
+
+
+class QuoteItemOut(QuoteItemBase):
+    id: UUID
+    importe: float
+
+    model_config = {"from_attributes": True}
+
+
+class QuoteBase(BaseModel):
+    cliente_id: UUID
+    fecha_validez: Optional[datetime] = None
+    moneda: str = "MXN"
     notas: Optional[str] = None
 
 
-class QuoteItemOut(BaseModel):
-    id: int
-    quote_id: int
-    product_id: int
-    cantidad: float
-    precio_unitario: float
-    descuento: float
-    subtotal: float
-    notas: Optional[str] = None
-    product: Optional["ProductOut"] = None
-
-    class Config:
-        from_attributes = True
-
-
-class QuoteCreate(BaseModel):
-    cliente_id: int
+class QuoteCreate(QuoteBase):
     items: List[QuoteItemCreate]
-    validez_dias: Optional[int] = 15
-    notas: Optional[str] = None
-    descuento: Optional[float] = 0.0
 
 
 class QuoteUpdate(BaseModel):
+    fecha_validez: Optional[datetime] = None
+    estado: Optional[QuoteStatus] = None
+    notas: Optional[str] = None
     items: Optional[List[QuoteItemCreate]] = None
-    validez_dias: Optional[int] = None
-    notas: Optional[str] = None
-    descuento: Optional[float] = None
 
 
-class PriceApprovalRequest(BaseModel):
-    quote_id: int
-    notes: Optional[str] = None
-
-
-class PriceApprovalResponse(BaseModel):
-    quote_id: int
-    approved: bool
-    notes: Optional[str] = None
-
-
-class QuoteOut(BaseModel):
-    id: int
-    folio: str
-    cliente_id: int
-    vendedor_id: int
+class QuoteOut(QuoteBase):
+    id: UUID
+    folio: int
+    vendedor_id: UUID
+    estado: QuoteStatus
     subtotal: float
-    descuento: float
-    impuesto: float
+    iva: float
     total: float
-    validez_dias: int
-    notas: Optional[str] = None
-    estado: str
-    requires_price_approval: bool
-    price_approval_status: str
-    pdf_generated: bool
-    pdf_url: Optional[str] = None
-    is_active: bool
-    cliente: Optional["ClientOut"] = None
-    vendedor: Optional["UserOut"] = None
-    items: List[QuoteItemOut] = []
     created_at: datetime
-    updated_at: datetime
+    items: List[QuoteItemOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
-from app.schemas.client import ClientOut
-from app.schemas.user import UserOut
-from app.schemas.product import ProductOut
-QuoteItemOut.model_rebuild()
-QuoteOut.model_rebuild()
+class PriceRequestCreate(BaseModel):
+    quote_id: Optional[UUID] = None
+    producto_id: UUID
+    precio_solicitado: float
+    notas: Optional[str] = None

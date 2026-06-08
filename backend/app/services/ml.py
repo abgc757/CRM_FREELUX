@@ -1,43 +1,84 @@
-"""
-ML integration stubs for future AI/ML features.
-- Price suggestion based on historical data
-- Demand forecasting
-- Supplier ranking optimization
-"""
+from uuid import UUID
 
-import json
-from typing import Optional, List, Dict
-from datetime import datetime
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.inventory import InventoryMovement
+from app.models.product import Product
+from app.models.sale import Sale
 
 
-def export_training_dataset(model_type: str, start_date: str, end_date: str) -> str:
-    datasets = {
-        "sales": "SELECT * FROM sales JOIN sale_items ...",
-        "stock": "SELECT * FROM inventory_movements ...",
-        "suppliers": "SELECT * FROM suppliers JOIN purchases ...",
-    }
-    query = datasets.get(model_type, "")
-    return json.dumps({"model_type": model_type, "query": query, "period": [start_date, end_date]})
+async def export_sales_dataset(db: AsyncSession) -> list:
+    result = await db.execute(
+        select(Sale).order_by(Sale.created_at.desc()).limit(10000)
+    )
+    sales = result.scalars().all()
+    return [
+        {
+            "id": str(s.id),
+            "vendedor_id": str(s.vendedor_id),
+            "cliente_id": str(s.cliente_id),
+            "subtotal": float(s.subtotal),
+            "iva": float(s.iva),
+            "total": float(s.total),
+            "tipo_documento": s.tipo_documento,
+            "estado": s.estado,
+            "created_at": s.created_at.isoformat(),
+        }
+        for s in sales
+    ]
 
 
-def predict_price(product_id: int, features: Optional[Dict] = None) -> Dict:
+async def export_inventory_dataset(db: AsyncSession) -> list:
+    result = await db.execute(
+        select(InventoryMovement).order_by(InventoryMovement.created_at.desc()).limit(10000)
+    )
+    movements = result.scalars().all()
+    return [
+        {
+            "id": str(m.id),
+            "product_id": str(m.product_id),
+            "tipo": m.tipo,
+            "cantidad": float(m.cantidad),
+            "cantidad_anterior": float(m.cantidad_anterior),
+            "referencia_tipo": m.referencia_tipo,
+            "created_at": m.created_at.isoformat(),
+        }
+        for m in movements
+    ]
+
+
+async def price_suggestion(db: AsyncSession, product_id: UUID) -> dict:
+    result = await db.execute(select(Product).where(Product.id == product_id))
+    product = result.scalar_one_or_none()
+    if product is None:
+        return {"error": "Product not found"}
+    costo = float(product.costo)
+    suggested = round(costo * 1.35, 4)
     return {
-        "product_id": product_id,
-        "suggested_price": 0.0,
-        "confidence": 0.0,
-        "model_version": "0.0.0",
-        "features_used": features or {},
+        "product_id": str(product_id),
+        "costo": costo,
+        "precio_actual": float(product.precio_1),
+        "precio_sugerido": suggested,
+        "margen_pct": 35.0,
+        "method": "cost_plus_static",
     }
 
 
-def forecast_demand(product_id: int, horizon_days: int = 30) -> Dict:
+async def demand_forecast(db: AsyncSession, product_id: UUID) -> dict:
+    result = await db.execute(
+        select(InventoryMovement).where(
+            InventoryMovement.product_id == product_id,
+            InventoryMovement.tipo == "salida",
+        ).order_by(InventoryMovement.created_at.desc()).limit(90)
+    )
+    movements = result.scalars().all()
+    total_qty = sum(float(m.cantidad) for m in movements)
+    avg_daily = total_qty / 90 if movements else 0
     return {
-        "product_id": product_id,
-        "forecast": [],
-        "horizon_days": horizon_days,
-        "model_version": "0.0.0",
+        "product_id": str(product_id),
+        "avg_daily_demand": round(avg_daily, 4),
+        "forecast_30d": round(avg_daily * 30, 4),
+        "data_points": len(movements),
+        "method": "moving_average_90d",
     }
-
-
-def rank_suppliers(criteria: Dict) -> List[Dict]:
-    return []

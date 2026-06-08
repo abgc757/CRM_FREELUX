@@ -1,45 +1,31 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, func, Table, ForeignKey
-from sqlalchemy.orm import relationship
-from app.database import Base
+import uuid
+from datetime import datetime
 
-supplier_family_association = Table(
-    "supplier_families",
-    Base.metadata,
-    Column("supplier_id", Integer, ForeignKey("suppliers.id"), primary_key=True),
-    Column("family_name", String(100), primary_key=True),
-)
+from sqlalchemy import Boolean, DateTime, Float, Integer, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database import Base
 
 
 class Supplier(Base):
     __tablename__ = "suppliers"
 
-    id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String(200), nullable=False)
-    rfc = Column(String(20), unique=True, nullable=False)
-    email = Column(String(255))
-    phone = Column(String(50))
-    contact_name = Column(String(150))
-    address = Column(String(500))
-    city = Column(String(100))
-    state = Column(String(100))
-    ubicacion = Column(String(200))
-    website = Column(String(500))
-    tiempo_entrega_promedio = Column(Integer, default=0)
-    fiabilidad_score = Column(Float, default=0.0)
-    distancia_km = Column(Float, default=0.0)
-    familias = Column(Text, default="[]")
-    is_active = Column(Boolean, default=True)
-    notes = Column(Text)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    nombre: Mapped[str] = mapped_column(String(200), nullable=False)
+    rfc: Mapped[str] = mapped_column(String(13), nullable=True)
+    contacto: Mapped[str] = mapped_column(String(200), nullable=True)
+    telefono: Mapped[str] = mapped_column(String(20), nullable=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=True)
+    direccion: Mapped[str] = mapped_column(String(500), nullable=True)
+    ciudad: Mapped[str] = mapped_column(String(100), nullable=True)
+    estado_mx: Mapped[str] = mapped_column(String(100), nullable=True)
+    lat: Mapped[float] = mapped_column(Float, nullable=True)
+    lng: Mapped[float] = mapped_column(Float, nullable=True)
+    familias: Mapped[list] = mapped_column(ARRAY(String), nullable=True, default=list)
+    tiempo_entrega_promedio_dias: Mapped[int] = mapped_column(Integer, default=7, nullable=True)
+    fiabilidad_score: Mapped[int] = mapped_column(Integer, default=50, nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     purchases = relationship("Purchase", back_populates="supplier")
-
-
-class SupplierFamily(Base):
-    __tablename__ = "supplier_family_catalog"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)
-    description = Column(Text)
-    is_active = Column(Boolean, default=True)

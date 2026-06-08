@@ -1,62 +1,40 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, func
-from sqlalchemy.orm import relationship
+import uuid
+from datetime import datetime
+from enum import Enum as PyEnum
+
+from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.database import Base
+
+
+class TipoDocumento(str, PyEnum):
+    factura = "factura"
+    nota_venta = "nota_venta"
+    remision = "remision"
+
+
+class SaleStatus(str, PyEnum):
+    pendiente = "pendiente"
+    completada = "completada"
+    cancelada = "cancelada"
 
 
 class Sale(Base):
     __tablename__ = "sales"
 
-    id = Column(Integer, primary_key=True, index=True)
-    folio = Column(String(20), unique=True, nullable=False, index=True)
-    quote_id = Column(Integer, ForeignKey("quotes.id"), nullable=True)
-    cliente_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
-    vendedor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    subtotal = Column(Float, default=0.0)
-    descuento = Column(Float, default=0.0)
-    impuesto = Column(Float, default=0.0)
-    total = Column(Float, default=0.0)
-    tipo = Column(String(20), default="contado")
-    factura_solicitada = Column(Boolean, default=False)
-    factura_uuid = Column(String(100))
-    notas = Column(Text)
-    estado = Column(String(20), default="completada")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    quote_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("quotes.id"), nullable=True)
+    vendedor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    cliente_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("clients.id"), nullable=False)
+    tipo_documento: Mapped[TipoDocumento] = mapped_column(Enum(TipoDocumento), default=TipoDocumento.nota_venta, nullable=False)
+    estado: Mapped[SaleStatus] = mapped_column(Enum(SaleStatus), default=SaleStatus.pendiente, nullable=False)
+    subtotal: Mapped[float] = mapped_column(Numeric(14, 4), default=0.0, nullable=False)
+    iva: Mapped[float] = mapped_column(Numeric(14, 4), default=0.0, nullable=False)
+    total: Mapped[float] = mapped_column(Numeric(14, 4), default=0.0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    quote = relationship("Quote", back_populates="sale", foreign_keys=[quote_id])
-    cliente = relationship("Client")
+    quote = relationship("Quote", back_populates="sale")
     vendedor = relationship("User", back_populates="sales", foreign_keys=[vendedor_id])
-    items = relationship("SaleItem", back_populates="sale", cascade="all, delete-orphan")
-    remissions = relationship("Remission", back_populates="sale")
-
-
-class SaleItem(Base):
-    __tablename__ = "sale_items"
-
-    id = Column(Integer, primary_key=True, index=True)
-    sale_id = Column(Integer, ForeignKey("sales.id", ondelete="CASCADE"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    cantidad = Column(Float, nullable=False)
-    precio_unitario = Column(Float, nullable=False)
-    descuento = Column(Float, default=0.0)
-    subtotal = Column(Float, nullable=False)
-
-    sale = relationship("Sale", back_populates="items")
-    product = relationship("Product")
-
-
-class Remission(Base):
-    __tablename__ = "remissions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    folio = Column(String(20), unique=True, nullable=False, index=True)
-    sale_id = Column(Integer, ForeignKey("sales.id"), nullable=False)
-    fecha_entrega = Column(DateTime(timezone=True))
-    direccion_entrega = Column(String(500))
-    recibio_nombre = Column(String(150))
-    recibio_firma = Column(String(500))
-    notas = Column(Text)
-    estado = Column(String(20), default="pendiente")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    sale = relationship("Sale", back_populates="remissions")
+    cliente = relationship("Client", back_populates="sales")

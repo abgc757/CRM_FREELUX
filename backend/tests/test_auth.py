@@ -1,68 +1,60 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
-from app.main import app
-from app.database import get_db, Base
-from app.core.security import hash_password
-from app.models import Role, User
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy import select
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
-
-
-@pytest.fixture
-async def db_session():
-    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with session_factory() as session:
-        role = Role(name="admin", permissions='["all"]')
-        session.add(role)
-        await session.flush()
-        user = User(
-            nombre="Admin Test",
-            email="admin@test.com",
-            password_hash=hash_password("test123"),
-            role_id=role.id,
-        )
-        session.add(user)
-        await session.commit()
-        yield session
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
-
-
-@pytest.fixture
-def client(db_session):
-    transport = ASGITransport(app=app)
-
-    async def override_get_db():
-        yield db_session
-
-    app.dependency_overrides[get_db] = override_get_db
-    return AsyncClient(transport=transport, base_url="http://test")
+from app.models.user import UserRole
+from tests.conftest import _create_user, _login
 
 
 @pytest.mark.asyncio
-async def test_login_success(client):
-    response = await client.post("/api/v1/auth/login", json={"email": "admin@test.com", "password": "test123"})
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
+async def test_login_success(client: AsyncClient, db: AsyncSession):
+    await _create_user(db, "auth_test@example.com", UserRole.ventas)
+    token = await _login(client, "auth_test@example.com")
+    assert isinstance(token, str)
+    assert len(token) > 10
 
 
 @pytest.mark.asyncio
-async def test_login_invalid_password(client):
-    response = await client.post("/api/v1/auth/login", json={"email": "admin@test.com", "password": "wrong"})
-    assert response.status_code == 401
+async def test_login_wrong_password(client: AsyncClient, db: AsyncSession):
+    await _create_user(db, "wrong_pass@example.com", UserRole.ventas)
+    resp = await client.post(
+        "/api/v1/auth/login",
+        data={"username": "wrong_pass@example.com", "password": "WRONG"},
+    )
+    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_login_invalid_email(client):
-    response = await client.post("/api/v1/auth/login", json={"email": "nobody@test.com", "password": "test123"})
-    assert response.status_code == 401
+async def test_login_nonexistent_user(client: AsyncClient, db: AsyncSession):
+    resp = await client.post(
+        "/api/v1/auth/login",
+        data={"username": "nobody@example.com", "password": "secret123"},
+    )
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_me_with_valid_token(client: AsyncClient, db: AsyncSession):
+    await _create_user(db, "me_test@example.com", UserRole.gerente)
+    token = await _login(client, "me_test@example.com")
+    resp = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["email"] == "me_test@example.com"
+    assert data["role"] == "gerente"
+
+
+@pytest.mark.asyncio
+async def test_me_with_invalid_token(client: AsyncClient, db: AsyncSession):
+    resp = await client.get("/api/v1/auth/me", headers={"Authorization": "Bearer invalid.token.here"})
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_token(client: AsyncClient, db: AsyncSession):
+    await _create_user(db, "refresh_test@example.com", UserRole.ventas)
+    token = await _login(client, "refresh_test@example.com")
+    resp = await client.post("/api/v1/auth/refresh", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    new_token = resp.json()["access_token"]
+    assert isinstance(new_token, str)

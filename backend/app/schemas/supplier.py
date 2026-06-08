@@ -1,73 +1,50 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr
 
 
-class SupplierCreate(BaseModel):
+class SupplierBase(BaseModel):
     nombre: str
-    rfc: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    contact_name: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    ubicacion: Optional[str] = None
-    website: Optional[str] = None
-    tiempo_entrega_promedio: Optional[int] = 0
-    fiabilidad_score: Optional[float] = 0.0
-    distancia_km: Optional[float] = 0.0
-    familias: Optional[str] = "[]"
-    notes: Optional[str] = None
+    rfc: Optional[str] = None
+    contacto: Optional[str] = None
+    telefono: Optional[str] = None
+    email: Optional[EmailStr] = None
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = None
+    estado_mx: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    familias: Optional[List[str]] = None
+    tiempo_entrega_promedio_dias: Optional[int] = 7
+    fiabilidad_score: Optional[int] = 50
+    activo: bool = True
+
+
+class SupplierCreate(SupplierBase):
+    pass
 
 
 class SupplierUpdate(BaseModel):
     nombre: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    contact_name: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    ubicacion: Optional[str] = None
-    website: Optional[str] = None
-    tiempo_entrega_promedio: Optional[int] = None
-    fiabilidad_score: Optional[float] = None
-    distancia_km: Optional[float] = None
-    familias: Optional[str] = None
-    notes: Optional[str] = None
-    is_active: Optional[bool] = None
+    rfc: Optional[str] = None
+    contacto: Optional[str] = None
+    telefono: Optional[str] = None
+    email: Optional[EmailStr] = None
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = None
+    estado_mx: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    familias: Optional[List[str]] = None
+    tiempo_entrega_promedio_dias: Optional[int] = None
+    fiabilidad_score: Optional[int] = None
+    activo: Optional[bool] = None
 
 
-class SupplierOut(BaseModel):
-    id: int
-    nombre: str
-    rfc: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    contact_name: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    ubicacion: Optional[str] = None
-    website: Optional[str] = None
-    tiempo_entrega_promedio: int
-    fiabilidad_score: float
-    distancia_km: float
-    familias: str
-    is_active: bool
-    notes: Optional[str] = None
+class SupplierOut(SupplierBase):
+    id: UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
-
-class SupplierSearchOut(BaseModel):
-    id: int
-    nombre: str
-    familias: str
-    distancia_km: float
-    tiempo_entrega_promedio: int
-    fiabilidad_score: float
-    score: Optional[float] = None
+    model_config = {"from_attributes": True}

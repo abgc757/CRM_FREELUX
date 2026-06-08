@@ -1,11 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
-from typing import Optional, List
+
+from app.core.dependencies import get_current_user, require_roles
 from app.database import get_db
-from app.core.dependencies import get_current_user, RoleChecker
-from app.models import User, Product, Department, Category, Warehouse
-from app.schemas.product import ProductCreate, ProductOut, StockOut, DepartmentOut, CategoryOut
+from app.models.product import Product
+from app.models.user import User, UserRole
+from app.schemas.product import ProductCreate, ProductOut, ProductPriceUpdate, ProductStock, ProductUpdate
+from app.services.price_management import update_product_price
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -13,83 +18,98 @@ router = APIRouter(prefix="/products", tags=["products"])
 @router.get("", response_model=List[ProductOut])
 async def list_products(
     search: Optional[str] = Query(None),
-    department_id: Optional[int] = Query(None),
-    category_id: Optional[int] = Query(None),
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    familia: Optional[str] = Query(None),
+    categoria: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    query = select(Product).where(Product.is_active == True)
+    q = select(Product).where(Product.activo == True)
     if search:
-        search_filter = or_(
-            Product.sku.ilike(f"%{search}%"),
-            Product.nombre.ilike(f"%{search}%"),
-            Product.caracteristicas.ilike(f"%{search}%"),
+        q = q.where(
+            or_(
+                Product.sku.ilike(f"%{search}%"),
+                Product.nombre.ilike(f"%{search}%"),
+            )
         )
-        query = query.where(search_filter)
-    if department_id:
-        query = query.where(Product.department_id == department_id)
-    if category_id:
-        query = query.where(Product.category_id == category_id)
-    query = query.order_by(Product.nombre).offset((page - 1) * size).limit(size)
-    result = await db.execute(query)
-    return [ProductOut.model_validate(p) for p in result.scalars().all()]
+    if familia:
+        q = q.where(Product.familia.ilike(f"%{familia}%"))
+    if categoria:
+        q = q.where(Product.categoria.ilike(f"%{categoria}%"))
+    result = await db.execute(q.order_by(Product.nombre))
+    return result.scalars().all()
 
 
-@router.get("/{sku}/stock", response_model=StockOut)
+@router.get("/{product_id}", response_model=ProductOut)
+async def get_product(
+    product_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Product).where(Product.id == product_id))
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
+
+
+@router.get("/{sku}/stock", response_model=ProductStock)
 async def get_product_stock(
     sku: str,
-    warehouse_id: Optional[int] = Query(None),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(select(Product).where(Product.sku == sku))
     product = result.scalar_one_or_none()
     if not product:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
-    warehouse_name = "Principal"
-    if warehouse_id:
-        w_result = await db.execute(select(Warehouse).where(Warehouse.id == warehouse_id))
-        wh = w_result.scalar_one_or_none()
-        warehouse_name = wh.name if wh else "Principal"
-    return StockOut(
+        raise HTTPException(status_code=404, detail="Product not found")
+    return ProductStock(
         product_id=product.id,
         sku=product.sku,
         nombre=product.nombre,
-        stock=product.stock,
-        warehouse_id=warehouse_id or 1,
-        warehouse_name=warehouse_name,
+        existencia=float(product.existencia),
+        inv_min=float(product.inv_min) if product.inv_min is not None else None,
+        inv_max=float(product.inv_max) if product.inv_max is not None else None,
     )
 
 
-@router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProductOut, status_code=201)
 async def create_product(
-    body: ProductCreate,
-    current_user: User = Depends(RoleChecker(["admin", "almacen"])),
+    data: ProductCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.gerente, UserRole.admin)),
 ):
-    existing = await db.execute(select(Product).where(Product.sku == body.sku))
+    existing = await db.execute(select(Product).where(Product.sku == data.sku))
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="SKU already exists")
-    product = Product(**body.model_dump())
+        raise HTTPException(status_code=400, detail="SKU already exists")
+    product = Product(**data.model_dump())
     db.add(product)
     await db.flush()
     await db.refresh(product)
-    return ProductOut.model_validate(product)
+    return product
 
 
-@router.get("/departments", response_model=List[DepartmentOut])
-async def list_departments(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Department).where(Department.is_active == True))
-    return [DepartmentOut.model_validate(d) for d in result.scalars().all()]
-
-
-@router.get("/categories", response_model=List[CategoryOut])
-async def list_categories(
-    department_id: Optional[int] = Query(None),
+@router.put("/{product_id}", response_model=ProductOut)
+async def update_product(
+    product_id: UUID,
+    data: ProductUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.gerente, UserRole.admin)),
 ):
-    query = select(Category).where(Category.is_active == True)
-    if department_id:
-        query = query.where(Category.department_id == department_id)
-    result = await db.execute(query)
-    return [CategoryOut.model_validate(c) for c in result.scalars().all()]
+    result = await db.execute(select(Product).where(Product.id == product_id))
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(product, field, value)
+    await db.flush()
+    return product
+
+
+@router.put("/{product_id}/price", response_model=ProductOut)
+async def update_price(
+    product_id: UUID,
+    data: ProductPriceUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.gerente)),
+):
+    return await update_product_price(db, product_id, data, current_user.id)

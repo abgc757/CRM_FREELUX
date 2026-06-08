@@ -1,62 +1,27 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+from typing import Optional
+from uuid import UUID
 
+from pydantic import BaseModel
 
-class SaleItemOut(BaseModel):
-    id: int
-    sale_id: int
-    product_id: int
-    cantidad: float
-    precio_unitario: float
-    descuento: float
-    subtotal: float
-    product: Optional[dict] = None
-
-    class Config:
-        from_attributes = True
-
-
-class RemissionOut(BaseModel):
-    id: int
-    folio: str
-    sale_id: int
-    fecha_entrega: Optional[datetime] = None
-    direccion_entrega: Optional[str] = None
-    recibio_nombre: Optional[str] = None
-    estado: str
-    notas: Optional[str] = None
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
+from app.models.sale import SaleStatus, TipoDocumento
 
 
 class SaleOut(BaseModel):
-    id: int
-    folio: str
-    quote_id: Optional[int] = None
-    cliente_id: int
-    vendedor_id: int
+    id: UUID
+    quote_id: Optional[UUID]
+    vendedor_id: UUID
+    cliente_id: UUID
+    tipo_documento: TipoDocumento
+    estado: SaleStatus
     subtotal: float
-    descuento: float
-    impuesto: float
+    iva: float
     total: float
-    tipo: str
-    factura_solicitada: bool
-    factura_uuid: Optional[str] = None
-    notas: Optional[str] = None
-    estado: str
-    items: List[SaleItemOut] = []
-    remissions: List[RemissionOut] = []
     created_at: datetime
-    updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
-class RemissionCreate(BaseModel):
-    sale_id: int
-    direccion_entrega: Optional[str] = None
-    notas: Optional[str] = None
+class SaleUpdate(BaseModel):
+    tipo_documento: Optional[TipoDocumento] = None
+    estado: Optional[SaleStatus] = None

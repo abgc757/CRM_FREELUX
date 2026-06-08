@@ -1,73 +1,39 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, func
-from sqlalchemy.orm import relationship
+import uuid
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, Float, Integer, Numeric, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.database import Base
-
-
-class Department(Base):
-    __tablename__ = "departments"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)
-    description = Column(Text)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    categories = relationship("Category", back_populates="department")
-    products = relationship("Product", back_populates="department")
-
-
-class Category(Base):
-    __tablename__ = "categories"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
-    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    department = relationship("Department", back_populates="categories")
-    products = relationship("Product", back_populates="category")
 
 
 class Product(Base):
     __tablename__ = "products"
 
-    id = Column(Integer, primary_key=True, index=True)
-    sku = Column(String(50), unique=True, nullable=False, index=True)
-    clave_alterna = Column(String(50))
-    nombre = Column(String(300), nullable=False)
-    descripcion = Column(Text)
-    servicio = Column(Boolean, default=False)
-    department_id = Column(Integer, ForeignKey("departments.id"))
-    category_id = Column(Integer, ForeignKey("categories.id"))
-    inv_min = Column(Integer, default=0)
-    inv_max = Column(Integer, default=0)
-    costo = Column(Float, default=0.0)
-    costo_mxn = Column(Float, default=0.0)
-    precio_venta = Column(Float, default=0.0)
-    precio_venta_mxn = Column(Float, default=0.0)
-    precio_2 = Column(Float, default=0.0)
-    mayoreo_2 = Column(Integer, default=0)
-    precio_3 = Column(Float, default=0.0)
-    mayoreo_3 = Column(Integer, default=0)
-    precio_4 = Column(Float, default=0.0)
-    mayoreo_4 = Column(Integer, default=0)
-    peso = Column(Float, default=0.0)
-    peso_kg = Column(Float, default=0.0)
-    stock = Column(Float, default=0.0)
-    caracteristicas = Column(Text)
-    margin = Column(Float, default=0.20)
-    receta = Column(Boolean, default=False)
-    granel = Column(Boolean, default=False)
-    impuesto = Column(Boolean, default=True)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    version = Column(Integer, default=1)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sku: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    nombre: Mapped[str] = mapped_column(String(500), nullable=False)
+    familia: Mapped[str] = mapped_column(String(100), nullable=True)
+    categoria: Mapped[str] = mapped_column(String(100), nullable=True)
+    departamento: Mapped[str] = mapped_column(String(100), nullable=True)
+    peso_kg: Mapped[float] = mapped_column(Float, default=0.0, nullable=True)
+    costo: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=False)
+    precio_1: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=False)
+    precio_2: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=True)
+    precio_3: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=True)
+    precio_4: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=True)
+    mayoreo_2: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
+    mayoreo_3: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
+    mayoreo_4: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
+    tiene_impuesto: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    existencia: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=False)
+    inv_min: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=True)
+    inv_max: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=True)
+    caracteristicas: Mapped[str] = mapped_column(String(1000), nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    department = relationship("Department", back_populates="products", foreign_keys=[department_id])
-    category = relationship("Category", back_populates="products", foreign_keys=[category_id])
+    price_history = relationship("PriceHistory", back_populates="product")
     inventory_movements = relationship("InventoryMovement", back_populates="product")
-    quote_items = relationship("QuoteItem", back_populates="product")
-    sale_items = relationship("SaleItem", back_populates="product")
-    price_history = relationship("PriceHistory", back_populates="product", cascade="all, delete-orphan")

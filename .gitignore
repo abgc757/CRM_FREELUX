@@ -1,14 +1,236 @@
+# ─────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────
 __pycache__/
 *.py[cod]
-*.egg-info/
-.env
-*.db
-.mypy_cache/
-.pytest_cache/
-.coverage
-htmlcov/
-dist/
+*$py.class
+*.so
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Entornos virtuales
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# Tests y cobertura
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage/
+coverage_html/
+coverage.xml
+nosetests.xml
+.pytest_cache/
+htmlcov/
+.hypothesis/
+*.cover
+*.py,cover
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# ─────────────────────────────────────────────
+# Node / Next.js / Frontend
+# ─────────────────────────────────────────────
 node_modules/
-*.local
-.vite/
+.next/
+out/
+.nuxt/
+dist/
+.cache/
+.parcel-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn-integrity
+*.tsbuildinfo
+
+# Entorno frontend
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend/.env.local
+frontend/.env.production
+
+# ─────────────────────────────────────────────
+# Docker
+# ─────────────────────────────────────────────
+# NO ignorar docker-compose.yml ni Dockerfiles
+.dockerignore
+
+# ─────────────────────────────────────────────
+# Variables de entorno y secretos
+# ─────────────────────────────────────────────
+*.env
+.env.*
+!.env.example
+!.env.local.example
+backend/.env
+backend/.env.staging
+backend/.env.production
+*.pem
+*.key
+*.crt
+secrets/
+kubeconfig
+kubeconfig-*
+.kube/
+
+# ─────────────────────────────────────────────
+# Bases de datos locales
+# ─────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+!backend/alembic/versions/*.sql
+
+# ─────────────────────────────────────────────
+# IDEs y editores
+# ─────────────────────────────────────────────
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# ─────────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+npm-debug.log*
+celery*.log
+
+# ─────────────────────────────────────────────
+# Archivos generados en runtime
+# ─────────────────────────────────────────────
+# PDFs generados
+backend/app/generated_pdfs/
+*.pdf
+!docs/ui/*.pdf
+
+# Uploads temporales
+backend/uploads/
+backend/tmp/
+
+# ─────────────────────────────────────────────
+# Volúmenes de Docker locales
+# ─────────────────────────────────────────────
+postgres_data/
+redis_data/
+elasticsearch_data/
+prometheus_data/
+grafana_data/
+
+# ─────────────────────────────────────────────
+# Alembic
+# ─────────────────────────────────────────────
+# No ignorar las migraciones
+# backend/alembic/versions/*.py  # Mantener controladas
+alembic.ini.local
+
+# ─────────────────────────────────────────────
+# ML / Data Science
+# ─────────────────────────────────────────────
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+*.pt
+*.pth
+ml/models/*.pkl
+ml/data/raw/
+ml/data/processed/
+notebooks/.ipynb_checkpoints/
+
+# ─────────────────────────────────────────────
+# Archivos de CI/CD locales
+# ─────────────────────────────────────────────
+.act/
+act-secrets
+
+# ─────────────────────────────────────────────
+# macOS
+# ─────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# ─────────────────────────────────────────────
+# Windows
+# ─────────────────────────────────────────────
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ─────────────────────────────────────────────
+# Misc
+# ─────────────────────────────────────────────
+*.bak
+*.tmp
+*.temp
+*.orig
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl

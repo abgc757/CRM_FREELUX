@@ -1,69 +1,70 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: freelux-crm
+  labels:
+    app: freelux-frontend
+spec:
+  selector:
+    app: freelux-frontend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ferrecrm-frontend
+  name: freelux-frontend
+  namespace: freelux-crm
   labels:
-    app: ferrecrm
-    component: frontend
+    app: freelux-frontend
+    app.kubernetes.io/name: freelux-crm
+    app.kubernetes.io/component: frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: ferrecrm
-      component: frontend
+      app: freelux-frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
-        app: ferrecrm
-        component: frontend
+        app: freelux-frontend
     spec:
       containers:
         - name: frontend
-          image: ferrecrm/frontend:latest
+          image: ghcr.io/abgc757/crm_freelux/frontend:latest
+          imagePullPolicy: Always
           ports:
-            - containerPort: 80
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://crm.freelux.mx"
+            - name: NODE_ENV
+              value: "production"
           resources:
             requests:
-              memory: "128Mi"
               cpu: "100m"
+              memory: "128Mi"
             limits:
-              memory: "256Mi"
-              cpu: "250m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend
-spec:
-  selector:
-    app: ferrecrm
-    component: frontend
-  ports:
-    - port: 80
-      targetPort: 80
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: ferrecrm-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-    - host: ferrecrm.example.com
-      http:
-        paths:
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: backend
-                port:
-                  number: 8000
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend
-                port:
-                  number: 80
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5

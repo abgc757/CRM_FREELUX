@@ -1,107 +1,90 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from typing import Optional, List
-from datetime import datetime, timezone
+
+from app.core.dependencies import get_current_user, require_roles
 from app.database import get_db
-from app.core.dependencies import get_current_user, RoleChecker
-from app.models import User, Product, Warehouse, InventoryMovement
-from app.schemas.inventory import (
-    InventoryMovementCreate, InventoryMovementOut, WarehouseOut,
-)
+from app.models.inventory import InventoryMovement, MovementType
+from app.models.product import Product
+from app.models.user import User, UserRole
+from app.schemas.inventory import LowStockItem, MovementCreate, MovementOut
+from app.services.inventory import register_movement
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
 
-@router.get("/warehouses", response_model=List[WarehouseOut])
-async def list_warehouses(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Warehouse).where(Warehouse.is_active == True))
-    return [WarehouseOut.model_validate(w) for w in result.scalars().all()]
-
-
-@router.post("/movement", response_model=InventoryMovementOut, status_code=status.HTTP_201_CREATED)
-async def create_movement(
-    body: InventoryMovementCreate,
-    current_user: User = Depends(RoleChecker(["almacen", "gerencia", "admin"])),
+@router.get("", response_model=List[LowStockItem])
+async def list_inventory(
+    almacen_id: Optional[UUID] = Query(None),
+    product_id: Optional[UUID] = Query(None),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    prod = await db.get(Product, body.product_id)
-    if not prod:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
-    wh = await db.get(Warehouse, body.warehouse_id)
-    if not wh:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Warehouse not found")
-    if body.tipo not in ("entrada", "salida", "ajuste"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid movement type")
-    if body.tipo == "salida" and prod.stock < body.cantidad:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient stock")
-    movement = InventoryMovement(
-        product_id=body.product_id,
-        warehouse_id=body.warehouse_id,
-        cantidad=body.cantidad,
-        tipo=body.tipo,
-        referencia=body.referencia,
-        referencia_tipo=body.referencia_tipo,
-        notes=body.notes,
-        user_id=current_user.id,
-    )
-    db.add(movement)
-    if body.tipo == "entrada":
-        prod.stock += body.cantidad
-    elif body.tipo == "salida":
-        prod.stock -= body.cantidad
-    else:
-        prod.stock = body.cantidad
-    prod.version += 1
-    await db.flush()
-    await db.refresh(movement)
-    return InventoryMovementOut.model_validate(movement)
-
-
-@router.get("/movements", response_model=List[InventoryMovementOut])
-async def list_movements(
-    product_id: Optional[int] = Query(None),
-    tipo: Optional[str] = Query(None),
-    warehouse_id: Optional[int] = Query(None),
-    page: int = Query(1, ge=1),
-    size: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_db),
-):
-    query = select(InventoryMovement)
+    q = select(Product).where(Product.activo == True)
     if product_id:
-        query = query.where(InventoryMovement.product_id == product_id)
-    if tipo:
-        query = query.where(InventoryMovement.tipo == tipo)
-    if warehouse_id:
-        query = query.where(InventoryMovement.warehouse_id == warehouse_id)
-    query = query.order_by(InventoryMovement.created_at.desc()).offset((page - 1) * size).limit(size)
-    result = await db.execute(query)
-    return [InventoryMovementOut.model_validate(m) for m in result.scalars().all()]
+        q = q.where(Product.id == product_id)
+    result = await db.execute(q.order_by(Product.nombre))
+    products = result.scalars().all()
+    return [
+        LowStockItem(
+            product_id=p.id,
+            sku=p.sku,
+            nombre=p.nombre,
+            existencia=float(p.existencia),
+            inv_min=float(p.inv_min) if p.inv_min is not None else None,
+        )
+        for p in products
+    ]
 
 
-@router.get("/stats/weights", response_model=List[dict])
-async def get_weight_stats(
+@router.post("/movement", response_model=MovementOut, status_code=201)
+async def create_movement(
+    data: MovementCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.almacen, UserRole.gerente)),
+):
+    return await register_movement(db, data, current_user.id)
+
+
+@router.get("/movements", response_model=List[MovementOut])
+async def list_movements(
+    product_id: Optional[UUID] = Query(None),
+    tipo: Optional[MovementType] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    q = select(InventoryMovement)
+    if product_id:
+        q = q.where(InventoryMovement.product_id == product_id)
+    if tipo:
+        q = q.where(InventoryMovement.tipo == tipo)
+    result = await db.execute(q.order_by(InventoryMovement.created_at.desc()).limit(500))
+    return result.scalars().all()
+
+
+@router.get("/low-stock", response_model=List[LowStockItem])
+async def low_stock(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(
-            Product.department_id,
-            func.avg(Product.peso).label("avg_weight"),
-            func.min(Product.peso).label("min_weight"),
-            func.max(Product.peso).label("max_weight"),
-            func.stddev(Product.peso).label("std_weight"),
-            func.count(Product.id).label("product_count"),
-        ).where(Product.is_active == True).group_by(Product.department_id)
+        select(Product).where(
+            Product.activo == True,
+            Product.inv_min.isnot(None),
+            Product.existencia <= Product.inv_min,
+        ).order_by(Product.nombre)
     )
-    stats = result.all()
+    products = result.scalars().all()
     return [
-        {
-            "department_id": row[0],
-            "avg_weight": round(float(row[1]), 2) if row[1] else 0,
-            "min_weight": float(row[2]) if row[2] else 0,
-            "max_weight": float(row[3]) if row[3] else 0,
-            "std_weight": round(float(row[4]), 2) if row[4] else 0,
-            "product_count": row[5],
-        }
-        for row in stats
+        LowStockItem(
+            product_id=p.id,
+            sku=p.sku,
+            nombre=p.nombre,
+            existencia=float(p.existencia),
+            inv_min=float(p.inv_min) if p.inv_min is not None else None,
+        )
+        for p in products
     ]

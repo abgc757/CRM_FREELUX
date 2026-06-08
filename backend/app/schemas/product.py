@@ -1,97 +1,81 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel
 
 
-class DepartmentOut(BaseModel):
-    id: int
-    name: str
-    description: Optional[str] = None
-    is_active: bool
-
-    class Config:
-        from_attributes = True
-
-
-class CategoryOut(BaseModel):
-    id: int
-    name: str
-    department_id: int
-    is_active: bool
-
-    class Config:
-        from_attributes = True
-
-
-class ProductCreate(BaseModel):
+class ProductBase(BaseModel):
     sku: str
-    clave_alterna: Optional[str] = None
     nombre: str
-    descripcion: Optional[str] = None
-    servicio: Optional[bool] = False
-    department_id: Optional[int] = None
-    category_id: Optional[int] = None
-    inv_min: Optional[int] = 0
-    inv_max: Optional[int] = 0
-    costo: Optional[float] = 0.0
-    precio_venta: Optional[float] = 0.0
-    precio_2: Optional[float] = 0.0
-    mayoreo_2: Optional[int] = 0
-    precio_3: Optional[float] = 0.0
-    mayoreo_3: Optional[int] = 0
-    precio_4: Optional[float] = 0.0
-    mayoreo_4: Optional[int] = 0
-    peso: Optional[float] = 0.0
-    stock: Optional[float] = 0.0
+    familia: Optional[str] = None
+    categoria: Optional[str] = None
+    departamento: Optional[str] = None
+    peso_kg: Optional[float] = 0.0
+    costo: float = 0.0
+    precio_1: float = 0.0
+    precio_2: Optional[float] = None
+    precio_3: Optional[float] = None
+    precio_4: Optional[float] = None
+    mayoreo_2: Optional[int] = None
+    mayoreo_3: Optional[int] = None
+    mayoreo_4: Optional[int] = None
+    tiene_impuesto: bool = True
+    existencia: float = 0.0
+    inv_min: Optional[float] = None
+    inv_max: Optional[float] = None
     caracteristicas: Optional[str] = None
-    receta: Optional[bool] = False
-    granel: Optional[bool] = False
-    impuesto: Optional[bool] = True
+    activo: bool = True
 
 
-class ProductOut(BaseModel):
-    id: int
-    sku: str
-    clave_alterna: Optional[str] = None
-    nombre: str
-    descripcion: Optional[str] = None
-    servicio: bool
-    department_id: Optional[int] = None
-    category_id: Optional[int] = None
-    department: Optional[DepartmentOut] = None
-    category: Optional[CategoryOut] = None
-    inv_min: int
-    inv_max: int
-    costo: float
-    precio_venta: float
-    precio_2: float
-    mayoreo_2: int
-    precio_3: float
-    mayoreo_3: int
-    precio_4: float
-    mayoreo_4: int
-    peso: float
-    stock: float
+class ProductCreate(ProductBase):
+    pass
+
+
+class ProductUpdate(BaseModel):
+    nombre: Optional[str] = None
+    familia: Optional[str] = None
+    categoria: Optional[str] = None
+    departamento: Optional[str] = None
+    peso_kg: Optional[float] = None
+    costo: Optional[float] = None
+    precio_1: Optional[float] = None
+    precio_2: Optional[float] = None
+    precio_3: Optional[float] = None
+    precio_4: Optional[float] = None
+    mayoreo_2: Optional[int] = None
+    mayoreo_3: Optional[int] = None
+    mayoreo_4: Optional[int] = None
+    tiene_impuesto: Optional[bool] = None
+    inv_min: Optional[float] = None
+    inv_max: Optional[float] = None
     caracteristicas: Optional[str] = None
-    receta: bool
-    granel: bool
-    impuesto: bool
-    is_active: bool
+    activo: Optional[bool] = None
+
+
+class ProductPriceUpdate(BaseModel):
+    costo: Optional[float] = None
+    precio_1: Optional[float] = None
+    precio_2: Optional[float] = None
+    precio_3: Optional[float] = None
+    precio_4: Optional[float] = None
+    motivo: Optional[str] = None
+
+
+class ProductOut(ProductBase):
+    id: UUID
     version: int
     created_at: datetime
-    updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
-class StockOut(BaseModel):
-    product_id: int
+class ProductStock(BaseModel):
+    product_id: UUID
     sku: str
     nombre: str
-    stock: float
-    warehouse_id: int
-    warehouse_name: str
+    existencia: float
+    inv_min: Optional[float]
+    inv_max: Optional[float]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

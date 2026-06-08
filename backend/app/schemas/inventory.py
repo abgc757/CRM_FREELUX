@@ -1,41 +1,52 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel
+
+from app.models.inventory import MovementType, ReferenciaType
 
 
-class InventoryMovementCreate(BaseModel):
-    product_id: int
-    warehouse_id: int
+class MovementCreate(BaseModel):
+    product_id: UUID
+    almacen_id: Optional[UUID] = None
+    tipo: MovementType
     cantidad: float
-    tipo: str
-    referencia: Optional[str] = None
-    referencia_tipo: Optional[str] = None
-    notes: Optional[str] = None
+    referencia_tipo: Optional[ReferenciaType] = None
+    referencia_id: Optional[UUID] = None
+    notas: Optional[str] = None
 
 
-class InventoryMovementOut(BaseModel):
-    id: int
-    product_id: int
-    warehouse_id: int
+class MovementOut(BaseModel):
+    id: UUID
+    product_id: UUID
+    almacen_id: Optional[UUID]
+    tipo: MovementType
     cantidad: float
-    tipo: str
-    referencia: Optional[str] = None
-    referencia_tipo: Optional[str] = None
-    notes: Optional[str] = None
-    user_id: int
-    product: Optional[dict] = None
-    warehouse: Optional[dict] = None
+    cantidad_anterior: float
+    referencia_tipo: Optional[ReferenciaType]
+    referencia_id: Optional[UUID]
+    usuario_id: UUID
+    notas: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class WarehouseOut(BaseModel):
-    id: int
-    name: str
-    location: Optional[str] = None
-    is_active: bool
+    id: UUID
+    nombre: str
+    ubicacion: Optional[str]
+    activo: bool
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
+
+class LowStockItem(BaseModel):
+    product_id: UUID
+    sku: str
+    nombre: str
+    existencia: float
+    inv_min: Optional[float]
+
+    model_config = {"from_attributes": True}

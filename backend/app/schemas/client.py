@@ -1,53 +1,35 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr
 
 
-class ClientCreate(BaseModel):
+class ClientBase(BaseModel):
     nombre: str
-    rfc: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    contact_name: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    zip_code: Optional[str] = None
-    credit_limit: Optional[int] = 0
-    notes: Optional[str] = None
+    rfc: Optional[str] = None
+    telefono: Optional[str] = None
+    email: Optional[EmailStr] = None
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = None
+
+
+class ClientCreate(ClientBase):
+    owner_user_id: Optional[UUID] = None
 
 
 class ClientUpdate(BaseModel):
     nombre: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    contact_name: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    zip_code: Optional[str] = None
-    credit_limit: Optional[int] = None
-    notes: Optional[str] = None
-    is_active: Optional[bool] = None
+    rfc: Optional[str] = None
+    telefono: Optional[str] = None
+    email: Optional[EmailStr] = None
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = None
 
 
-class ClientOut(BaseModel):
-    id: int
-    nombre: str
-    rfc: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    contact_name: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    zip_code: Optional[str] = None
-    owner_user_id: int
-    credit_limit: int
-    is_active: bool
-    notes: Optional[str] = None
+class ClientOut(ClientBase):
+    id: UUID
+    owner_user_id: UUID
     created_at: datetime
-    updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

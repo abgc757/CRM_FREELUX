@@ -1,61 +1,50 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, func
-from sqlalchemy.orm import relationship
+import uuid
+from datetime import datetime
+from enum import Enum as PyEnum
+
+from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.database import Base
+
+
+class PurchaseStatus(str, PyEnum):
+    borrador = "borrador"
+    enviada = "enviada"
+    recibida = "recibida"
+    cancelada = "cancelada"
 
 
 class Purchase(Base):
     __tablename__ = "purchases"
 
-    id = Column(Integer, primary_key=True, index=True)
-    folio = Column(String(20), unique=True, nullable=False, index=True)
-    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    subtotal = Column(Float, default=0.0)
-    impuesto = Column(Float, default=0.0)
-    total = Column(Float, default=0.0)
-    estado = Column(String(20), default="solicitada")
-    eta = Column(DateTime(timezone=True))
-    notas = Column(Text)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    supplier_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=False)
+    solicitante_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    estado: Mapped[PurchaseStatus] = mapped_column(Enum(PurchaseStatus), default=PurchaseStatus.borrador, nullable=False)
+    fecha_esperada: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    subtotal: Mapped[float] = mapped_column(Numeric(14, 4), default=0.0, nullable=False)
+    iva: Mapped[float] = mapped_column(Numeric(14, 4), default=0.0, nullable=False)
+    total: Mapped[float] = mapped_column(Numeric(14, 4), default=0.0, nullable=False)
+    notas: Mapped[str] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     supplier = relationship("Supplier", back_populates="purchases")
-    user = relationship("User")
+    solicitante = relationship("User", foreign_keys=[solicitante_id])
     items = relationship("PurchaseItem", back_populates="purchase", cascade="all, delete-orphan")
-    availability_requests = relationship("AvailabilityRequest", back_populates="purchase")
 
 
 class PurchaseItem(Base):
     __tablename__ = "purchase_items"
 
-    id = Column(Integer, primary_key=True, index=True)
-    purchase_id = Column(Integer, ForeignKey("purchases.id", ondelete="CASCADE"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    cantidad = Column(Float, nullable=False)
-    precio_unitario = Column(Float, nullable=False)
-    subtotal = Column(Float, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    purchase_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("purchases.id"), nullable=False)
+    product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=True)
+    descripcion: Mapped[str] = mapped_column(String(500), nullable=False)
+    cantidad: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
+    precio_unitario: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
+    cantidad_recibida: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=False)
 
     purchase = relationship("Purchase", back_populates="items")
     product = relationship("Product")
-
-
-class AvailabilityRequest(Base):
-    __tablename__ = "availability_requests"
-
-    id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    sale_id = Column(Integer, ForeignKey("sales.id"), nullable=True)
-    purchase_id = Column(Integer, ForeignKey("purchases.id"), nullable=True)
-    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    cantidad = Column(Float, nullable=False)
-    estado = Column(String(20), default="pendiente")
-    eta_response = Column(DateTime(timezone=True))
-    response_notes = Column(Text)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-    product = relationship("Product")
-    sale = relationship("Sale")
-    purchase = relationship("Purchase", back_populates="availability_requests")
-    requested_by = relationship("User")

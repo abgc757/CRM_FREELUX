@@ -1,61 +1,63 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel
+
+from app.models.purchase import PurchaseStatus
 
 
-class PurchaseItemCreate(BaseModel):
-    product_id: int
+class PurchaseItemBase(BaseModel):
+    product_id: Optional[UUID] = None
+    descripcion: str
     cantidad: float
     precio_unitario: float
 
 
-class PurchaseItemOut(BaseModel):
-    id: int
-    purchase_id: int
-    product_id: int
-    cantidad: float
-    precio_unitario: float
-    subtotal: float
-    product: Optional[dict] = None
-
-    class Config:
-        from_attributes = True
+class PurchaseItemCreate(PurchaseItemBase):
+    pass
 
 
-class PurchaseCreate(BaseModel):
-    supplier_id: int
+class PurchaseItemOut(PurchaseItemBase):
+    id: UUID
+    cantidad_recibida: float
+
+    model_config = {"from_attributes": True}
+
+
+class PurchaseItemReceive(BaseModel):
+    item_id: UUID
+    cantidad_recibida: float
+
+
+class PurchaseBase(BaseModel):
+    supplier_id: UUID
+    fecha_esperada: Optional[datetime] = None
+    notas: Optional[str] = None
+
+
+class PurchaseCreate(PurchaseBase):
     items: List[PurchaseItemCreate]
+
+
+class PurchaseUpdate(BaseModel):
+    estado: Optional[PurchaseStatus] = None
+    fecha_esperada: Optional[datetime] = None
     notas: Optional[str] = None
 
 
-class PurchaseOut(BaseModel):
-    id: int
-    folio: str
-    supplier_id: int
-    user_id: int
+class PurchaseReceive(BaseModel):
+    items: List[PurchaseItemReceive]
+
+
+class PurchaseOut(PurchaseBase):
+    id: UUID
+    solicitante_id: UUID
+    estado: PurchaseStatus
     subtotal: float
-    impuesto: float
+    iva: float
     total: float
-    estado: str
-    eta: Optional[datetime] = None
-    notas: Optional[str] = None
-    items: List[PurchaseItemOut] = []
     created_at: datetime
-    updated_at: datetime
+    items: List[PurchaseItemOut] = []
 
-    class Config:
-        from_attributes = True
-
-
-class AvailabilityRequestCreate(BaseModel):
-    product_id: int
-    cantidad: float
-    sale_id: Optional[int] = None
-    notes: Optional[str] = None
-
-
-class AvailabilityRequestResponse(BaseModel):
-    request_id: int
-    eta: Optional[datetime] = None
-    notes: Optional[str] = None
-    estado: str = "respondida"
+    model_config = {"from_attributes": True}
