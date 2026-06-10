@@ -96,8 +96,7 @@ services:
     plan: free
 
     dockerBuildArgs:
-      - key: NEXT_PUBLIC_API_URL
-        value: https://crm-freelux-backend-y7kz.onrender.com/api/v1
+      NEXT_PUBLIC_API_URL: https://crm-freelux-backend-y7kz.onrender.com/api/v1
 
     envVars:
       - key: NEXT_PUBLIC_API_URL
