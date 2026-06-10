@@ -1,14 +1,8 @@
 import axios from "axios";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (typeof window !== "undefined" && window.location.hostname !== "localhost"
-    ? "https://crm-freelux-backend-y7kz.onrender.com/api/v1"
-    : "http://localhost:8000/api/v1");
+export const api = axios.create({ baseURL: "/api/v1" });
 
-export const api = axios.create({ baseURL: API_BASE });
-
-const BACKEND = API_BASE.replace("/api/v1", "");
+const BACKEND = "";
 
 /**
  * Descarga un archivo del backend con el JWT de sesión y lo abre en nueva pestaña.

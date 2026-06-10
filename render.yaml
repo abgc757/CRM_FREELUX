@@ -95,12 +95,12 @@ services:
     region: oregon
     plan: free
 
-    dockerBuildArgs:
-      NEXT_PUBLIC_API_URL: https://crm-freelux-backend-y7kz.onrender.com/api/v1
-
     envVars:
-      - key: NEXT_PUBLIC_API_URL
-        value: https://crm-freelux-backend-y7kz.onrender.com/api/v1
+      - key: BACKEND_URL
+        fromService:
+          name: crm-freelux-backend
+          type: web
+          property: hostport
 
   # ---------------------------------------------------------------------------
   # Redis
