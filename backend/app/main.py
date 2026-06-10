@@ -21,16 +21,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-_origins = list(filter(None, [
-    settings.FRONTEND_URL,
+_origins = [
     "http://localhost:3000",
     "https://crm-freelux-frontend.onrender.com",
-    "https://crm-freelux-frontend-y7kz.onrender.com",
-]))
+]
+if settings.FRONTEND_URL and settings.FRONTEND_URL not in _origins:
+    # Normaliza: agrega https:// si viene sin scheme (desde Render fromService)
+    url = settings.FRONTEND_URL
+    if not url.startswith("http"):
+        url = f"https://{url}"
+    _origins.append(url)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
+    # Acepta cualquier subdominio onrender.com (cubre sufijos aleatorios de Render)
+    allow_origin_regex=r"https://crm-freelux-.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
