@@ -28,7 +28,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     # Sobreescribe el CMD del Dockerfile: corre migraciones y luego uvicorn
-    startCommand: bash start.sh
+    dockerCommand: bash start.sh
     region: oregon
     plan: free
     healthCheckPath: /health
@@ -111,3 +111,4 @@ services:
     plan: free
     region: oregon
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
