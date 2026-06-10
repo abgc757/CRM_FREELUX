@@ -10,11 +10,12 @@ RUN npm run build
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
 
 COPY --from=base /app/.next/standalone ./
 COPY --from=base /app/.next/static ./.next/static
 
-# Crear directorio public antes de copiar (evita error si está vacío)
 RUN mkdir -p ./public
 COPY --from=base /app/public ./public
 
