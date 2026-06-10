@@ -95,13 +95,13 @@ services:
     region: oregon
     plan: free
 
-    envVars:
-      # Render inyecta solo el host (sin https://). El frontend lo completa en runtime.
+    dockerBuildArgs:
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          name: crm-freelux-backend
-          type: web
-          property: hostport
+        value: https://crm-freelux-backend.onrender.com/api/v1
+
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://crm-freelux-backend.onrender.com/api/v1
 
   # ---------------------------------------------------------------------------
   # Redis

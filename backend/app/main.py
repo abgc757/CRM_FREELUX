@@ -21,9 +21,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_origins = list(filter(None, [
+    settings.FRONTEND_URL,
+    "http://localhost:3000",
+    "https://crm-freelux-frontend.onrender.com",
+]))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:3000"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
