@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header">
+  <div>
+    <div class="brand-name">FreeLux</div>
+    <div class="brand-sub">{{ empresa.nombre }}<br>RFC: {{ empresa.rfc }}</div>
+    <div class="brand-sub" style="margin-top:4px;">{{ empresa.direccion }}</div>
+    <div class="brand-sub">Tel: {{ empresa.telefono }} | {{ empresa.email }}</div>
+  </div>
+  <div>
+    <div class="doc-title">COTIZACIÓN</div>
+    <div class="doc-meta"><span class="doc-folio">{{ folio }}</span></div>
+    <div class="doc-meta">Fecha: {{ fecha }}</div>
+    <div class="doc-meta">Vigencia: {{ vigencia_dias }} días</div>
+    {% if status == 'aprobada' %}
+    <div class="doc-meta"><span class="status-badge badge-aprobada">✓ APROBADA</span></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="info-grid">
+  <div class="info-block section">
+    <div class="section-title">Cliente</div>
+    <p><strong>{{ cliente.nombre }}</strong></p>
+    {% if cliente.razon_social %}<p>{{ cliente.razon_social }}</p>{% endif %}
+    {% if cliente.rfc %}<p>RFC: {{ cliente.rfc }}</p>{% endif %}
+    {% if cliente.direccion %}<p>{{ cliente.direccion }}</p>{% endif %}
+    {% if cliente.telefono %}<p>Tel: {{ cliente.telefono }}</p>{% endif %}
+    {% if cliente.email %}<p>{{ cliente.email }}</p>{% endif %}
+  </div>
+  <div class="info-block section">
+    <div class="section-title">Vendedor</div>
+    <p><strong>{{ vendedor.nombre }}</strong></p>
+    {% if condiciones_pago %}<p>Condiciones: {{ condiciones_pago }}</p>{% endif %}
+    <p>IVA incluido en precios unitarios: No</p>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:8%">Clave</th>
+      <th style="width:42%">Descripción</th>
+      <th class="right" style="width:10%">Cant.</th>
+      <th style="width:7%">Unid.</th>
+      <th class="right" style="width:13%">P. Unitario</th>
+      <th class="right" style="width:8%">Desc.</th>
+      <th class="right" style="width:12%">Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td style="font-family:monospace; font-size:7.5pt;">{{ item.clave }}</td>
+      <td>{{ item.descripcion }}</td>
+      <td class="right">{{ item.cantidad }}</td>
+      <td class="center">{{ item.unidad }}</td>
+      <td class="right">${{ "%.4f"|format(item.precio_unitario) }}</td>
+      <td class="right">{% if item.descuento_pct > 0 %}{{ item.descuento_pct }}%{% else %}—{% endif %}</td>
+      <td class="right">${{ "%.2f"|format(item.subtotal) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div style="display:flex; justify-content:flex-end;">
+  <div class="totals">
+    <table>
+      <tr><td>Subtotal</td><td class="right">${{ "%.2f"|format(subtotal) }}</td></tr>
+      <tr><td>IVA (16%)</td><td class="right">${{ "%.2f"|format(iva) }}</td></tr>
+      <tr class="grand-total"><td><strong>TOTAL</strong></td><td class="right"><strong>${{ "%.2f"|format(total) }}</strong></td></tr>
+    </table>
+  </div>
+</div>
+
+{% if notas %}
+<div class="notes"><strong>Notas:</strong> {{ notas }}</div>
+{% endif %}
+
+<div class="section" style="font-size:8pt; color:#666; margin-top:8px;">
+  <strong>Condiciones generales:</strong> Precios en MXN. IVA no incluido en precios unitarios. Cotización válida por {{ vigencia_dias }} días a partir de la fecha de emisión.
+  Los precios pueden variar sujeto a disponibilidad y fluctuación del mercado del acero.
+</div>
+
+<div class="signatures">
+  <div>
+    <div class="signature-line">Firma del Cliente / Aprobación</div>
+  </div>
+  <div>
+    <div class="signature-line">{{ vendedor.nombre }} — FreeLux</div>
+  </div>
+</div>
+{% endblock %}

@@ -1,195 +1,190 @@
-import io
-from typing import List, Optional
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
-
-from app.core.dependencies import get_current_user
+from typing import Optional
+from decimal import Decimal
 from app.database import get_db
-from app.models.price_update_job import PriceRequest
-from app.models.quote import Quote, QuoteStatus
 from app.models.user import User, UserRole
-from app.schemas.quote import PriceRequestCreate, QuoteCreate, QuoteOut, QuoteUpdate
-from app.schemas.price_management import PriceRequestOut
-from app.services.quotes import convert_quote_to_sale, create_quote, update_quote
+from app.models.quote import Quote, QuoteItem, QuoteStatus
+from app.models.client import Client
+from app.models.product import Product, UnitType
+from app.core.dependencies import get_current_user, require_roles
+from app.schemas.quote import QuoteCreate, QuoteUpdate, QuoteOut, QuoteListOut, PaginatedQuotes
 
 router = APIRouter(prefix="/quotes", tags=["quotes"])
 
-
-def _quote_query():
-    return select(Quote).options(selectinload(Quote.items))
+IVA = Decimal("0.16")
 
 
-async def _get_quote_or_404(db: AsyncSession, quote_id: UUID, user: User) -> Quote:
-    result = await db.execute(
-        _quote_query().where(Quote.id == quote_id)
-    )
-    quote = result.scalar_one_or_none()
-    if not quote:
-        raise HTTPException(status_code=404, detail="Quote not found")
-    if user.role == UserRole.ventas and quote.vendedor_id != user.id:
-        raise HTTPException(status_code=403, detail="Not your quote")
-    return quote
+async def _next_folio(db: AsyncSession) -> str:
+    result = await db.execute(select(func.count()).select_from(Quote))
+    count = result.scalar() + 1
+    return f"COT-{count:06d}"
 
 
-@router.get("", response_model=List[QuoteOut])
+def _calc_totals(items: list[QuoteItem]) -> tuple[Decimal, Decimal, Decimal]:
+    subtotal = Decimal("0")
+    iva_total = Decimal("0")
+    for item in items:
+        sub = (item.cantidad * item.precio_unitario * (1 - item.descuento_pct / 100)).quantize(Decimal("0.01"))
+        item.subtotal = sub
+        subtotal += sub
+        if item.tiene_iva:
+            iva_total += (sub * IVA).quantize(Decimal("0.01"))
+    return subtotal, iva_total, subtotal + iva_total
+
+
+@router.get("/", response_model=PaginatedQuotes)
 async def list_quotes(
-    vendedor_id: Optional[UUID] = Query(None),
-    estado: Optional[QuoteStatus] = Query(None),
+    status: Optional[QuoteStatus] = None,
+    client_id: Optional[int] = None,
+    search: Optional[str] = Query(None, max_length=100),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    q = _quote_query()
+    conditions = []
     if current_user.role == UserRole.ventas:
-        q = q.where(Quote.vendedor_id == current_user.id)
-    elif vendedor_id:
-        q = q.where(Quote.vendedor_id == vendedor_id)
-    if estado:
-        q = q.where(Quote.estado == estado)
-    result = await db.execute(q.order_by(Quote.created_at.desc()))
-    return result.scalars().all()
+        conditions.append(Quote.seller_id == current_user.id)
+    if status:
+        conditions.append(Quote.status == status)
+    if client_id:
+        conditions.append(Quote.client_id == client_id)
+    if search:
+        term = f"%{search}%"
+        conditions.append(
+            or_(
+                Quote.folio.ilike(term),
+                Quote.client_id.in_(
+                    select(Client.id).where(Client.nombre.ilike(term))
+                ),
+            )
+        )
 
+    base_q = select(Quote).join(Client, Quote.client_id == Client.id).where(and_(*conditions))
+    total = (await db.execute(select(func.count()).select_from(base_q.subquery()))).scalar()
+    rows = (await db.execute(
+        base_q.add_columns(Client.nombre.label("client_nombre"))
+        .order_by(Quote.created_at.desc())
+        .offset((page - 1) * page_size).limit(page_size)
+    )).all()
 
-@router.post("", response_model=QuoteOut, status_code=201)
-async def create(
-    data: QuoteCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    quote = await create_quote(db, data, current_user.id)
-    return quote
+    items = [
+        QuoteListOut(
+            id=q.id, folio=q.folio, client_id=q.client_id,
+            client_nombre=nombre, seller_id=q.seller_id,
+            status=q.status, total=q.total, created_at=q.created_at,
+        )
+        for q, nombre in rows
+    ]
+    return PaginatedQuotes(total=total, page=page, page_size=page_size, items=items)
 
 
 @router.get("/{quote_id}", response_model=QuoteOut)
-async def get_quote(
-    quote_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return await _get_quote_or_404(db, quote_id, current_user)
-
-
-@router.put("/{quote_id}", response_model=QuoteOut)
-async def update(
-    quote_id: UUID,
-    data: QuoteUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    quote = await _get_quote_or_404(db, quote_id, current_user)
-    return await update_quote(db, quote, data)
-
-
-@router.post("/{quote_id}/convert")
-async def convert(
-    quote_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    quote = await _get_quote_or_404(db, quote_id, current_user)
-    sale = await convert_quote_to_sale(db, quote, current_user.id)
-    return {"sale_id": str(sale.id), "quote_id": str(quote_id)}
-
-
-@router.post("/{quote_id}/request-price", response_model=PriceRequestOut, status_code=201)
-async def request_price(
-    quote_id: UUID,
-    data: PriceRequestCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    quote = await _get_quote_or_404(db, quote_id, current_user)
-    pr = PriceRequest(
-        quote_id=quote.id,
-        vendedor_id=current_user.id,
-        producto_id=data.producto_id,
-        precio_solicitado=data.precio_solicitado,
-        notas=data.notas,
+async def get_quote(quote_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_user)):
+    result = await db.execute(
+        select(Quote).options(selectinload(Quote.items)).where(Quote.id == quote_id)
     )
-    db.add(pr)
+    quote = result.scalar_one_or_none()
+    if not quote:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    return quote
+
+
+@router.post("/", response_model=QuoteOut)
+async def create_quote(
+    body: QuoteCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not body.items:
+        raise HTTPException(status_code=400, detail="La cotización debe tener al menos un producto")
+
+    folio = await _next_folio(db)
+    quote = Quote(
+        folio=folio,
+        client_id=body.client_id,
+        seller_id=current_user.id,
+        notas=body.notas,
+        condiciones_pago=body.condiciones_pago,
+        vigencia_dias=body.vigencia_dias,
+    )
+    db.add(quote)
     await db.flush()
-    await db.refresh(pr)
-    return pr
+
+    items = []
+    for item_in in body.items:
+        item = QuoteItem(
+            quote_id=quote.id,
+            product_id=item_in.product_id,
+            descripcion=item_in.descripcion,
+            cantidad=item_in.cantidad,
+            unidad=item_in.unidad,
+            precio_unitario=item_in.precio_unitario,
+            descuento_pct=item_in.descuento_pct,
+            tiene_iva=item_in.tiene_iva,
+            subtotal=Decimal("0"),
+        )
+        items.append(item)
+        db.add(item)
+
+    await db.flush()
+    subtotal, iva, total = _calc_totals(items)
+    quote.subtotal = subtotal
+    quote.iva = iva
+    quote.total = total
+
+    await db.commit()
+    result = await db.execute(select(Quote).options(selectinload(Quote.items)).where(Quote.id == quote.id))
+    return result.scalar_one()
 
 
-@router.get("/{quote_id}/pdf")
-async def get_pdf(
-    quote_id: UUID,
+@router.patch("/{quote_id}", response_model=QuoteOut)
+async def update_quote(
+    quote_id: int,
+    body: QuoteUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    quote = await _get_quote_or_404(db, quote_id, current_user)
-    from reportlab.lib.pagesizes import letter
-    from reportlab.lib.units import mm
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.lib import colors
+    result = await db.execute(select(Quote).options(selectinload(Quote.items)).where(Quote.id == quote_id))
+    quote = result.scalar_one_or_none()
+    if not quote:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    if current_user.role == UserRole.ventas and quote.seller_id != current_user.id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    if quote.status in (QuoteStatus.convertida, QuoteStatus.cancelada):
+        raise HTTPException(status_code=400, detail="No se puede editar una cotización convertida o cancelada")
 
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    elements = []
+    for field, value in body.model_dump(exclude_none=True, exclude={"items"}).items():
+        setattr(quote, field, value)
 
-    elements.append(Paragraph(f"FREE LUX - Cotización #{quote.folio}", styles["Title"]))
-    elements.append(Spacer(1, 6 * mm))
-    elements.append(Paragraph(f"Estado: {quote.estado}", styles["Normal"]))
-    elements.append(Paragraph(f"Moneda: {quote.moneda}", styles["Normal"]))
-    if quote.fecha_validez:
-        elements.append(Paragraph(f"Válida hasta: {quote.fecha_validez.strftime('%Y-%m-%d')}", styles["Normal"]))
-    elements.append(Spacer(1, 4 * mm))
+    if body.items is not None:
+        for old_item in quote.items:
+            await db.delete(old_item)
+        await db.flush()
+        items = []
+        for item_in in body.items:
+            item = QuoteItem(
+                quote_id=quote.id,
+                product_id=item_in.product_id,
+                descripcion=item_in.descripcion,
+                cantidad=item_in.cantidad,
+                unidad=item_in.unidad,
+                precio_unitario=item_in.precio_unitario,
+                descuento_pct=item_in.descuento_pct,
+                tiene_iva=item_in.tiene_iva,
+                subtotal=Decimal("0"),
+            )
+            items.append(item)
+            db.add(item)
+        await db.flush()
+        subtotal, iva, total = _calc_totals(items)
+        quote.subtotal = subtotal
+        quote.iva = iva
+        quote.total = total
 
-    table_data = [["Descripción", "Cantidad", "Precio Unit.", "Importe"]]
-    for item in quote.items:
-        table_data.append([
-            item.descripcion,
-            str(item.cantidad),
-            f"${float(item.precio_unitario):,.2f}",
-            f"${float(item.importe):,.2f}",
-        ])
-    table_data.append(["", "", "Subtotal", f"${float(quote.subtotal):,.2f}"])
-    table_data.append(["", "", "IVA 16%", f"${float(quote.iva):,.2f}"])
-    table_data.append(["", "", "Total", f"${float(quote.total):,.2f}"])
-
-    t = Table(table_data, colWidths=[200, 70, 90, 90])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
-        ("FONTNAME", (0, -3), (-1, -1), "Helvetica-Bold"),
-    ]))
-    elements.append(t)
-
-    if quote.notas:
-        elements.append(Spacer(1, 6 * mm))
-        elements.append(Paragraph(f"Notas: {quote.notas}", styles["Normal"]))
-
-    doc.build(elements)
-    buffer.seek(0)
-    return StreamingResponse(
-        buffer,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=cotizacion_{quote.folio}.pdf"},
-    )
-
-
-@router.post("/{quote_id}/send-whatsapp")
-async def send_whatsapp(
-    quote_id: UUID,
-    phone: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    quote = await _get_quote_or_404(db, quote_id, current_user)
-    from app.core.config import settings
-    from app.tasks.notification_tasks import send_whatsapp_quote
-
-    if settings.TWILIO_ACCOUNT_SID:
-        send_whatsapp_quote.delay(str(quote.id), phone)
-        return {"status": "queued", "phone": phone}
-    return {"status": "skipped", "reason": "Twilio not configured", "quote_folio": quote.folio}
+    await db.commit()
+    result = await db.execute(select(Quote).options(selectinload(Quote.items)).where(Quote.id == quote.id))
+    return result.scalar_one()

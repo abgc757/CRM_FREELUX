@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: letter; margin: 15mm 15mm 20mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 10px; border-bottom: 3px solid #ea580c; margin-bottom: 14px; }
+  .brand-name { font-size: 22pt; font-weight: bold; color: #ea580c; letter-spacing: -0.5px; }
+  .brand-sub { font-size: 7.5pt; color: #666; margin-top: 2px; }
+  .doc-title { font-size: 14pt; font-weight: bold; color: #1a1a1a; text-align: right; }
+  .doc-meta { text-align: right; font-size: 8pt; color: #555; margin-top: 3px; }
+  .doc-folio { font-size: 10pt; font-weight: bold; color: #ea580c; }
+  .section { margin-bottom: 12px; }
+  .section-title { font-size: 7.5pt; font-weight: bold; text-transform: uppercase; color: #ea580c; letter-spacing: 0.5px; border-bottom: 1px solid #f0d0c0; padding-bottom: 3px; margin-bottom: 6px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .info-block p { font-size: 8.5pt; line-height: 1.6; }
+  .info-block strong { font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  thead th { background: #ea580c; color: white; padding: 5px 7px; font-size: 8pt; text-align: left; font-weight: bold; }
+  thead th.right { text-align: right; }
+  tbody tr:nth-child(even) { background: #fef9f6; }
+  tbody td { padding: 5px 7px; font-size: 8.5pt; border-bottom: 1px solid #f5e8e0; vertical-align: top; }
+  tbody td.right { text-align: right; }
+  tbody td.center { text-align: center; }
+  .totals { margin-left: auto; width: 220px; }
+  .totals table { margin-bottom: 0; }
+  .totals td { padding: 3px 7px; font-size: 8.5pt; }
+  .totals .grand-total td { font-weight: bold; font-size: 10pt; color: #ea580c; border-top: 2px solid #ea580c; }
+  .footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 6px 15mm; border-top: 1px solid #e5e5e5; font-size: 7pt; color: #999; display: flex; justify-content: space-between; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 7.5pt; font-weight: bold; }
+  .badge-aprobada { background: #dcfce7; color: #166534; }
+  .badge-pendiente { background: #fef9c3; color: #854d0e; }
+  .badge-pagada { background: #dbeafe; color: #1e40af; }
+  .notes { background: #fef9f6; border-left: 3px solid #ea580c; padding: 6px 10px; font-size: 8pt; color: #555; margin-bottom: 12px; }
+  .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; }
+  .signature-line { border-top: 1px solid #999; padding-top: 4px; font-size: 8pt; color: #555; text-align: center; margin-top: 40px; }
+</style>
+</head>
+<body>
+{% block content %}{% endblock %}
+<div class="footer">
+  <span>FreeLux — {{ empresa.rfc }}</span>
+  <span>{{ empresa.direccion }}</span>
+  <span>Generado: {{ fecha_generacion }}</span>
+</div>
+</body>
+</html>

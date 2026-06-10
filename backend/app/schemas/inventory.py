@@ -1,52 +1,45 @@
-from datetime import datetime
-from typing import Optional
-from uuid import UUID
-
 from pydantic import BaseModel
+from decimal import Decimal
+from datetime import datetime
+from typing import Optional, List
+from app.models.inventory import MovementType
 
-from app.models.inventory import MovementType, ReferenciaType
 
-
-class MovementCreate(BaseModel):
-    product_id: UUID
-    almacen_id: Optional[UUID] = None
+class MovementIn(BaseModel):
+    product_id: int
     tipo: MovementType
-    cantidad: float
-    referencia_tipo: Optional[ReferenciaType] = None
-    referencia_id: Optional[UUID] = None
+    cantidad: Decimal
+    referencia: Optional[str] = None
     notas: Optional[str] = None
 
 
 class MovementOut(BaseModel):
-    id: UUID
-    product_id: UUID
-    almacen_id: Optional[UUID]
+    model_config = {"from_attributes": True}
+    id: int
+    product_id: int
     tipo: MovementType
-    cantidad: float
-    cantidad_anterior: float
-    referencia_tipo: Optional[ReferenciaType]
-    referencia_id: Optional[UUID]
-    usuario_id: UUID
+    cantidad: Decimal
+    stock_antes: Decimal
+    stock_despues: Decimal
+    referencia: Optional[str]
     notas: Optional[str]
+    created_by_id: Optional[int]
     created_at: datetime
 
+
+class StockAlertOut(BaseModel):
     model_config = {"from_attributes": True}
+    id: int
+    clave: str
+    descripcion: str
+    stock_actual: Decimal
+    stock_min: Decimal
+    departamento: Optional[str]
+    categoria: Optional[str]
 
 
-class WarehouseOut(BaseModel):
-    id: UUID
-    nombre: str
-    ubicacion: Optional[str]
-    activo: bool
-
-    model_config = {"from_attributes": True}
-
-
-class LowStockItem(BaseModel):
-    product_id: UUID
-    sku: str
-    nombre: str
-    existencia: float
-    inv_min: Optional[float]
-
-    model_config = {"from_attributes": True}
+class PaginatedMovements(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: List[MovementOut]

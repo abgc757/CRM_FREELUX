@@ -1,63 +1,80 @@
-from datetime import datetime
-from typing import List, Optional
-from uuid import UUID
-
 from pydantic import BaseModel
-
+from decimal import Decimal
+from datetime import datetime, date
+from typing import Optional, List
 from app.models.purchase import PurchaseStatus
+from app.models.product import UnitType
 
 
-class PurchaseItemBase(BaseModel):
-    product_id: Optional[UUID] = None
+class PurchaseItemIn(BaseModel):
+    product_id: int
     descripcion: str
-    cantidad: float
-    precio_unitario: float
+    cantidad_solicitada: Decimal
+    unidad: UnitType = UnitType.pza
+    precio_unitario: Decimal
 
 
-class PurchaseItemCreate(PurchaseItemBase):
-    pass
-
-
-class PurchaseItemOut(PurchaseItemBase):
-    id: UUID
-    cantidad_recibida: float
-
+class PurchaseItemOut(BaseModel):
     model_config = {"from_attributes": True}
+    id: int
+    product_id: int
+    descripcion: str
+    cantidad_solicitada: Decimal
+    cantidad_recibida: Decimal
+    unidad: UnitType
+    precio_unitario: Decimal
+    subtotal: Decimal
 
 
-class PurchaseItemReceive(BaseModel):
-    item_id: UUID
-    cantidad_recibida: float
-
-
-class PurchaseBase(BaseModel):
-    supplier_id: UUID
-    fecha_esperada: Optional[datetime] = None
+class PurchaseOrderCreate(BaseModel):
+    supplier_id: int
+    fecha_requerida: Optional[date] = None
     notas: Optional[str] = None
+    items: List[PurchaseItemIn]
 
 
-class PurchaseCreate(PurchaseBase):
-    items: List[PurchaseItemCreate]
-
-
-class PurchaseUpdate(BaseModel):
-    estado: Optional[PurchaseStatus] = None
-    fecha_esperada: Optional[datetime] = None
+class PurchaseOrderUpdate(BaseModel):
+    supplier_id: Optional[int] = None
+    fecha_requerida: Optional[date] = None
     notas: Optional[str] = None
+    status: Optional[PurchaseStatus] = None
 
 
-class PurchaseReceive(BaseModel):
-    items: List[PurchaseItemReceive]
+class ReceiveItemIn(BaseModel):
+    item_id: int
+    cantidad_recibida: Decimal
 
 
-class PurchaseOut(PurchaseBase):
-    id: UUID
-    solicitante_id: UUID
-    estado: PurchaseStatus
-    subtotal: float
-    iva: float
-    total: float
-    created_at: datetime
+class PurchaseOrderOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    folio: str
+    supplier_id: int
+    created_by_id: int
+    status: PurchaseStatus
+    fecha_requerida: Optional[date]
+    notas: Optional[str]
+    subtotal: Decimal
+    iva: Decimal
+    total: Decimal
     items: List[PurchaseItemOut] = []
+    created_at: datetime
+    updated_at: datetime
 
+
+class PurchaseOrderListOut(BaseModel):
     model_config = {"from_attributes": True}
+    id: int
+    folio: str
+    supplier_id: int
+    status: PurchaseStatus
+    total: Decimal
+    fecha_requerida: Optional[date]
+    created_at: datetime
+
+
+class PaginatedPurchases(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: List[PurchaseOrderListOut]

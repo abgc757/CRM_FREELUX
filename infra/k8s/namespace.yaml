@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: freelux-crm
-  labels:
-    app.kubernetes.io/name: freelux-crm
-    app.kubernetes.io/managed-by: kubectl
-    environment: staging

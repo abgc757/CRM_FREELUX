@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --c-black:   #000000;
+    --c-white:   #ffffff;
+    --c-bg:      #f6f6f6;
+    --c-surface: #ffffff;
+    --c-border:  #e4e4e4;
+    --c-border2: #d0d0d0;
+    --c-text1:   #111111;
+    --c-text2:   #555555;
+    --c-text3:   #999999;
+    --c-accent:  #e55c00;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--c-bg);
+    color: var(--c-text1);
+    font-family: Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection { background: var(--c-accent); color: #fff; }
+}
+
+@layer components {
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-black hover:bg-neutral-800 active:bg-neutral-900
+           text-white text-xs font-semibold tracking-wide uppercase
+           px-4 py-2 rounded
+           transition-colors duration-150
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2
+           text-white text-xs font-semibold tracking-wide uppercase
+           px-4 py-2 rounded
+           transition-colors duration-150
+           disabled:opacity-40 disabled:cursor-not-allowed;
+    background: var(--c-accent);
+  }
+  .btn-accent:hover { background: #cc4f00; }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-white hover:bg-neutral-50 active:bg-neutral-100
+           text-neutral-800 text-xs font-semibold tracking-wide uppercase
+           px-4 py-2 rounded
+           transition-colors duration-150
+           disabled:opacity-40 disabled:cursor-not-allowed;
+    border: 1px solid var(--c-border2);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           hover:bg-neutral-100
+           text-neutral-500 hover:text-neutral-800 text-xs font-medium
+           px-3 py-2 rounded
+           transition-colors duration-150;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+  }
+
+  /* ── Inputs ── */
+  .input {
+    @apply w-full bg-white text-sm text-neutral-900
+           px-3 py-2 rounded
+           transition-colors duration-150
+           disabled:bg-neutral-50 disabled:text-neutral-400 disabled:cursor-not-allowed;
+    border: 1px solid var(--c-border2);
+    outline: none;
+  }
+  .input:focus {
+    border-color: var(--c-text1);
+    box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+  }
+  .input::placeholder { color: var(--c-text3); }
+
+  /* ── Labels ── */
+  .label {
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--c-text2);
+    margin-bottom: 5px;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    border-radius: 2px;
+  }
+
+  /* ── Table ── */
+  .data-table { @apply w-full text-sm; }
+  .data-table thead tr {
+    border-bottom: 1px solid var(--c-border);
+  }
+  .data-table thead th {
+    padding: 8px 12px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--c-text3);
+    text-align: left;
+  }
+  .data-table tbody tr {
+    border-bottom: 1px solid var(--c-border);
+    transition: background .1s;
+  }
+  .data-table tbody tr:last-child { border-bottom: none; }
+  .data-table tbody tr:hover { background: #fafafa; }
+  .data-table tbody td {
+    padding: 10px 12px;
+    color: var(--c-text1);
+  }
+
+  /* ── Folio (monospace data) ── */
+  .folio {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--c-accent);
+    letter-spacing: .02em;
+  }
+
+  /* ── Page header ── */
+  .page-title { @apply text-lg font-bold tracking-tight; }
+  .page-sub   { font-size: 12px; color: var(--c-text3); margin-top: 2px; }
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #b0b0b0; }

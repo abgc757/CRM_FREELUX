@@ -1,29 +1,29 @@
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.staticfiles import StaticFiles
+import os
+from app.core.config import settings
 from app.api.v1.router import api_router
-from app.database import engine
-from app.models import *  # noqa: F401,F403  — ensures all models are registered
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    os.makedirs(settings.MEDIA_DIR, exist_ok=True)
+    os.makedirs(f"{settings.MEDIA_DIR}/products", exist_ok=True)
+    os.makedirs(f"{settings.MEDIA_DIR}/pdfs", exist_ok=True)
     yield
-    await engine.dispose()
 
 
 app = FastAPI(
-    title="FREE LUX CRM",
-    description="CRM para Ferretería FREE LUX",
-    version="1.0.0",
+    title=settings.APP_NAME,
+    version=settings.VERSION,
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[settings.FRONTEND_URL, "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +31,11 @@ app.add_middleware(
 
 app.include_router(api_router)
 
+media_dir = settings.MEDIA_DIR
+if os.path.exists(media_dir):
+    app.mount("/media", StaticFiles(directory=media_dir), name="media")
+
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "freelux-crm"}
+    return {"status": "ok", "app": settings.APP_NAME}

@@ -1,53 +1,31 @@
-import uuid
-from datetime import datetime
-from enum import Enum as PyEnum
-
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+import enum
+from datetime import datetime, timezone
+from decimal import Decimal
+from sqlalchemy import String, Enum, DateTime, Integer, Numeric, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.database import Base
 
 
-class MovementType(str, PyEnum):
-    entrada = "entrada"
-    salida = "salida"
-    ajuste = "ajuste"
+class MovementType(str, enum.Enum):
+    entrada = "entrada"          # purchase receipt or manual entry
+    salida = "salida"            # sale dispatch
+    ajuste_positivo = "ajuste_positivo"
+    ajuste_negativo = "ajuste_negativo"
     devolucion = "devolucion"
-
-
-class ReferenciaType(str, PyEnum):
-    venta = "venta"
-    compra = "compra"
-    ajuste = "ajuste"
-
-
-class Warehouse(Base):
-    __tablename__ = "warehouses"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    nombre: Mapped[str] = mapped_column(String(200), nullable=False)
-    ubicacion: Mapped[str] = mapped_column(String(500), nullable=True)
-    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-
-    movements = relationship("InventoryMovement", back_populates="warehouse")
 
 
 class InventoryMovement(Base):
     __tablename__ = "inventory_movements"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
-    almacen_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True, nullable=False)
     tipo: Mapped[MovementType] = mapped_column(Enum(MovementType), nullable=False)
-    cantidad: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
-    cantidad_anterior: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
-    referencia_tipo: Mapped[ReferenciaType] = mapped_column(Enum(ReferenciaType), nullable=True)
-    referencia_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=True)
-    usuario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    notas: Mapped[str] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    cantidad: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    stock_antes: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    stock_despues: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
+    referencia: Mapped[str | None] = mapped_column(String(100))   # OC folio, sale folio, etc.
+    notas: Mapped[str | None] = mapped_column(Text)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    product = relationship("Product", back_populates="inventory_movements")
-    warehouse = relationship("Warehouse", back_populates="movements")
-    usuario = relationship("User", foreign_keys=[usuario_id])
+    product = relationship("Product")

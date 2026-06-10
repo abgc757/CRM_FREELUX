@@ -1,64 +1,83 @@
-from datetime import datetime
-from typing import List, Optional
-from uuid import UUID
-
 from pydantic import BaseModel
-
+from decimal import Decimal
+from datetime import datetime
+from typing import Optional, List
 from app.models.quote import QuoteStatus
+from app.models.product import UnitType
 
 
-class QuoteItemBase(BaseModel):
-    product_id: Optional[UUID] = None
+class QuoteItemIn(BaseModel):
+    product_id: int
     descripcion: str
-    cantidad: float
-    precio_unitario: float
+    cantidad: Decimal
+    unidad: UnitType = UnitType.pza
+    precio_unitario: Decimal
+    descuento_pct: Decimal = Decimal("0")
+    tiene_iva: bool = True
 
 
-class QuoteItemCreate(QuoteItemBase):
-    pass
-
-
-class QuoteItemOut(QuoteItemBase):
-    id: UUID
-    importe: float
-
+class QuoteItemOut(BaseModel):
     model_config = {"from_attributes": True}
+    id: int
+    product_id: int
+    descripcion: str
+    cantidad: Decimal
+    unidad: UnitType
+    precio_unitario: Decimal
+    descuento_pct: Decimal
+    subtotal: Decimal
+    tiene_iva: bool
 
 
-class QuoteBase(BaseModel):
-    cliente_id: UUID
-    fecha_validez: Optional[datetime] = None
-    moneda: str = "MXN"
+class QuoteCreate(BaseModel):
+    client_id: int
     notas: Optional[str] = None
-
-
-class QuoteCreate(QuoteBase):
-    items: List[QuoteItemCreate]
+    condiciones_pago: Optional[str] = None
+    vigencia_dias: int = 15
+    items: List[QuoteItemIn]
 
 
 class QuoteUpdate(BaseModel):
-    fecha_validez: Optional[datetime] = None
-    estado: Optional[QuoteStatus] = None
+    status: Optional[QuoteStatus] = None
     notas: Optional[str] = None
-    items: Optional[List[QuoteItemCreate]] = None
+    condiciones_pago: Optional[str] = None
+    vigencia_dias: Optional[int] = None
+    items: Optional[List[QuoteItemIn]] = None
 
 
-class QuoteOut(QuoteBase):
-    id: UUID
-    folio: int
-    vendedor_id: UUID
-    estado: QuoteStatus
-    subtotal: float
-    iva: float
-    total: float
-    created_at: datetime
-    items: List[QuoteItemOut] = []
-
+class QuoteOut(BaseModel):
     model_config = {"from_attributes": True}
+    id: int
+    folio: str
+    client_id: int
+    seller_id: int
+    status: QuoteStatus
+    notas: Optional[str]
+    condiciones_pago: Optional[str]
+    vigencia_dias: int
+    subtotal: Decimal
+    iva: Decimal
+    total: Decimal
+    pdf_url: Optional[str]
+    items: List[QuoteItemOut]
+    created_at: datetime
+    updated_at: datetime
 
 
-class PriceRequestCreate(BaseModel):
-    quote_id: Optional[UUID] = None
-    producto_id: UUID
-    precio_solicitado: float
-    notas: Optional[str] = None
+class QuoteListOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    folio: str
+    client_id: int
+    client_nombre: Optional[str] = None
+    seller_id: int
+    status: QuoteStatus
+    total: Decimal
+    created_at: datetime
+
+
+class PaginatedQuotes(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: list[QuoteListOut]

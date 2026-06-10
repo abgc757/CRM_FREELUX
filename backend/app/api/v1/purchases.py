@@ -1,164 +1,193 @@
-from decimal import Decimal
-from typing import List, Optional
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, and_
 from sqlalchemy.orm import selectinload
-
-from app.core.dependencies import get_current_user, require_roles
+from typing import Optional, List
+from decimal import Decimal
 from app.database import get_db
-from app.models.inventory import InventoryMovement, MovementType, ReferenciaType
-from app.models.product import Product
-from app.models.purchase import Purchase, PurchaseItem, PurchaseStatus
 from app.models.user import User, UserRole
-from app.schemas.purchase import PurchaseCreate, PurchaseOut, PurchaseReceive, PurchaseUpdate
+from app.models.purchase import PurchaseOrder, PurchaseOrderItem, PurchaseStatus
+from app.models.product import Product
+from app.models.inventory import InventoryMovement, MovementType
+from app.core.dependencies import get_current_user, require_roles
+from app.schemas.purchase import (
+    PurchaseOrderCreate, PurchaseOrderUpdate, PurchaseOrderOut,
+    PurchaseOrderListOut, PaginatedPurchases, ReceiveItemIn,
+)
 
 router = APIRouter(prefix="/purchases", tags=["purchases"])
+WRITE_ROLES = (UserRole.gerencia, UserRole.administracion, UserRole.compras)
 
-IVA_RATE = Decimal("0.16")
-
-
-def _purchase_query():
-    return select(Purchase).options(selectinload(Purchase.items))
+IVA = Decimal("0.16")
 
 
-async def _get_purchase_or_404(db: AsyncSession, purchase_id: UUID) -> Purchase:
-    result = await db.execute(_purchase_query().where(Purchase.id == purchase_id))
-    p = result.scalar_one_or_none()
-    if not p:
-        raise HTTPException(status_code=404, detail="Purchase not found")
-    return p
+async def _next_folio(db: AsyncSession) -> str:
+    count = (await db.execute(select(func.count()).select_from(PurchaseOrder))).scalar() + 1
+    return f"OC-{count:06d}"
 
 
-@router.get("", response_model=List[PurchaseOut])
+def _calc_totals(items: list[PurchaseOrderItem]) -> tuple[Decimal, Decimal, Decimal]:
+    subtotal = sum(i.subtotal for i in items)
+    iva_total = (subtotal * IVA).quantize(Decimal("0.01"))
+    return subtotal, iva_total, subtotal + iva_total
+
+
+@router.get("/", response_model=PaginatedPurchases)
 async def list_purchases(
-    estado: Optional[PurchaseStatus] = Query(None),
+    status: Optional[PurchaseStatus] = None,
+    supplier_id: Optional[int] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    _: User = Depends(get_current_user),
 ):
-    q = _purchase_query()
-    if estado:
-        q = q.where(Purchase.estado == estado)
-    result = await db.execute(q.order_by(Purchase.created_at.desc()))
-    return result.scalars().all()
+    conditions = []
+    if status:
+        conditions.append(PurchaseOrder.status == status)
+    if supplier_id:
+        conditions.append(PurchaseOrder.supplier_id == supplier_id)
 
-
-@router.post("", response_model=PurchaseOut, status_code=201)
-async def create_purchase(
-    data: PurchaseCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.compras, UserRole.gerente)),
-):
-    purchase = Purchase(
-        supplier_id=data.supplier_id,
-        solicitante_id=current_user.id,
-        fecha_esperada=data.fecha_esperada,
-        notas=data.notas,
-    )
-    db.add(purchase)
-    await db.flush()
-
-    subtotal = Decimal("0")
-    for item_data in data.items:
-        item = PurchaseItem(
-            purchase_id=purchase.id,
-            product_id=item_data.product_id,
-            descripcion=item_data.descripcion,
-            cantidad=item_data.cantidad,
-            precio_unitario=item_data.precio_unitario,
-        )
-        db.add(item)
-        subtotal += Decimal(str(item_data.cantidad)) * Decimal(str(item_data.precio_unitario))
-
-    purchase.subtotal = float(subtotal)
-    purchase.iva = float(subtotal * IVA_RATE)
-    purchase.total = float(subtotal + subtotal * IVA_RATE)
-    await db.flush()
-    await db.refresh(purchase, ["items"])
-    return purchase
-
-
-@router.get("/availability-requests", response_model=List[PurchaseOut])
-async def availability_requests(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.compras, UserRole.gerente)),
-):
+    total = (await db.execute(select(func.count()).select_from(PurchaseOrder).where(and_(*conditions)))).scalar()
     result = await db.execute(
-        _purchase_query()
-        .where(Purchase.estado == PurchaseStatus.borrador)
-        .where(Purchase.notas.like("%Auto-generado%"))
-        .order_by(Purchase.created_at.desc())
+        select(PurchaseOrder).where(and_(*conditions))
+        .order_by(PurchaseOrder.created_at.desc())
+        .offset((page - 1) * page_size).limit(page_size)
     )
-    return result.scalars().all()
+    return PaginatedPurchases(total=total, page=page, page_size=page_size, items=result.scalars().all())
 
 
-@router.get("/{purchase_id}", response_model=PurchaseOut)
-async def get_purchase(
-    purchase_id: UUID,
+@router.get("/{order_id}", response_model=PurchaseOrderOut)
+async def get_purchase(order_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_user)):
+    result = await db.execute(
+        select(PurchaseOrder).options(selectinload(PurchaseOrder.items)).where(PurchaseOrder.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Orden de compra no encontrada")
+    return order
+
+
+@router.post("/", response_model=PurchaseOrderOut, dependencies=[Depends(require_roles(*WRITE_ROLES))])
+async def create_purchase(
+    body: PurchaseOrderCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await _get_purchase_or_404(db, purchase_id)
+    if not body.items:
+        raise HTTPException(status_code=400, detail="La orden debe tener al menos un producto")
 
-
-@router.put("/{purchase_id}", response_model=PurchaseOut)
-async def update_purchase(
-    purchase_id: UUID,
-    data: PurchaseUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.compras, UserRole.gerente)),
-):
-    purchase = await _get_purchase_or_404(db, purchase_id)
-    for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(purchase, field, value)
+    folio = await _next_folio(db)
+    order = PurchaseOrder(
+        folio=folio,
+        supplier_id=body.supplier_id,
+        created_by_id=current_user.id,
+        fecha_requerida=body.fecha_requerida,
+        notas=body.notas,
+    )
+    db.add(order)
     await db.flush()
-    return purchase
+
+    items = []
+    for item_in in body.items:
+        subtotal = (item_in.cantidad_solicitada * item_in.precio_unitario).quantize(Decimal("0.01"))
+        item = PurchaseOrderItem(
+            order_id=order.id,
+            product_id=item_in.product_id,
+            descripcion=item_in.descripcion,
+            cantidad_solicitada=item_in.cantidad_solicitada,
+            unidad=item_in.unidad,
+            precio_unitario=item_in.precio_unitario,
+            subtotal=subtotal,
+        )
+        items.append(item)
+        db.add(item)
+
+    await db.flush()
+    subtotal, iva, total = _calc_totals(items)
+    order.subtotal = subtotal
+    order.iva = iva
+    order.total = total
+
+    await db.commit()
+    result = await db.execute(select(PurchaseOrder).options(selectinload(PurchaseOrder.items)).where(PurchaseOrder.id == order.id))
+    return result.scalar_one()
 
 
-@router.post("/{purchase_id}/receive", response_model=PurchaseOut)
-async def receive_purchase(
-    purchase_id: UUID,
-    data: PurchaseReceive,
+@router.patch("/{order_id}", response_model=PurchaseOrderOut, dependencies=[Depends(require_roles(*WRITE_ROLES))])
+async def update_purchase(order_id: int, body: PurchaseOrderUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(PurchaseOrder).options(selectinload(PurchaseOrder.items)).where(PurchaseOrder.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="No encontrada")
+    if order.status in (PurchaseStatus.recibida, PurchaseStatus.cancelada):
+        raise HTTPException(status_code=400, detail="No se puede modificar una OC recibida o cancelada")
+    for field, value in body.model_dump(exclude_none=True).items():
+        setattr(order, field, value)
+    await db.commit()
+    await db.refresh(order)
+    return order
+
+
+@router.post("/{order_id}/receive", response_model=PurchaseOrderOut, dependencies=[Depends(require_roles(*WRITE_ROLES))])
+async def receive_items(
+    order_id: int,
+    items_received: List[ReceiveItemIn],
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.almacen, UserRole.compras, UserRole.gerente)),
+    current_user: User = Depends(get_current_user),
 ):
-    purchase = await _get_purchase_or_404(db, purchase_id)
-    if purchase.estado == PurchaseStatus.cancelada:
-        raise HTTPException(status_code=400, detail="Purchase is cancelled")
+    """Receive (full or partial) items from a purchase order. Updates product stock."""
+    result = await db.execute(
+        select(PurchaseOrder).options(selectinload(PurchaseOrder.items)).where(PurchaseOrder.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    if order.status == PurchaseStatus.recibida:
+        raise HTTPException(status_code=400, detail="Esta orden ya fue completamente recibida")
+    if order.status == PurchaseStatus.cancelada:
+        raise HTTPException(status_code=400, detail="No se puede recibir una orden cancelada")
 
-    item_map = {str(i.id): i for i in purchase.items}
+    item_map = {i.id: i for i in order.items}
 
-    for receive_item in data.items:
-        item = item_map.get(str(receive_item.item_id))
-        if not item:
-            raise HTTPException(status_code=404, detail=f"Item {receive_item.item_id} not found")
+    for recv in items_received:
+        oc_item = item_map.get(recv.item_id)
+        if not oc_item:
+            raise HTTPException(status_code=400, detail=f"Partida {recv.item_id} no pertenece a esta OC")
 
-        item.cantidad_recibida = float(item.cantidad_recibida) + receive_item.cantidad_recibida
+        pendiente = oc_item.cantidad_solicitada - oc_item.cantidad_recibida
+        if recv.cantidad_recibida > pendiente:
+            raise HTTPException(status_code=400, detail=f"Cantidad recibida ({recv.cantidad_recibida}) supera pendiente ({pendiente})")
 
-        if item.product_id:
-            result = await db.execute(
-                select(Product).where(Product.id == item.product_id).with_for_update()
+        oc_item.cantidad_recibida += recv.cantidad_recibida
+
+        # Update product stock
+        prod_result = await db.execute(select(Product).where(Product.id == oc_item.product_id))
+        product = prod_result.scalar_one_or_none()
+        if product:
+            stock_antes = product.stock_actual
+            product.stock_actual += recv.cantidad_recibida
+            movement = InventoryMovement(
+                product_id=product.id,
+                tipo=MovementType.entrada,
+                cantidad=recv.cantidad_recibida,
+                stock_antes=stock_antes,
+                stock_despues=product.stock_actual,
+                referencia=order.folio,
+                notas=f"Recepción OC {order.folio}",
+                created_by_id=current_user.id,
             )
-            product = result.scalar_one_or_none()
-            if product:
-                prev = float(product.existencia)
-                product.existencia = prev + receive_item.cantidad_recibida
-                product.version += 1
-                movement = InventoryMovement(
-                    product_id=product.id,
-                    tipo=MovementType.entrada,
-                    cantidad=receive_item.cantidad_recibida,
-                    cantidad_anterior=prev,
-                    referencia_tipo=ReferenciaType.compra,
-                    referencia_id=purchase.id,
-                    usuario_id=current_user.id,
-                    notas=f"Recepción OC {purchase.id}",
-                )
-                db.add(movement)
+            db.add(movement)
 
-    purchase.estado = PurchaseStatus.recibida
-    await db.flush()
-    await db.refresh(purchase, ["items"])
-    return purchase
+    # Determine new order status
+    all_received = all(i.cantidad_recibida >= i.cantidad_solicitada for i in order.items)
+    any_received = any(i.cantidad_recibida > 0 for i in order.items)
+    if all_received:
+        order.status = PurchaseStatus.recibida
+    elif any_received:
+        order.status = PurchaseStatus.recibida_parcial
+    else:
+        order.status = PurchaseStatus.confirmada
+
+    await db.commit()
+    result = await db.execute(select(PurchaseOrder).options(selectinload(PurchaseOrder.items)).where(PurchaseOrder.id == order_id))
+    return result.scalar_one()

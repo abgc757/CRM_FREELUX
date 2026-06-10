@@ -1,85 +1,57 @@
-from typing import List, Optional
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.dependencies import get_current_user, require_roles
+from sqlalchemy import select, func, or_, and_
+from typing import Optional
 from app.database import get_db
-from app.models.supplier import Supplier
 from app.models.user import User, UserRole
-from app.schemas.supplier import SupplierCreate, SupplierOut, SupplierUpdate
+from app.models.purchase import Supplier
+from app.core.dependencies import get_current_user, require_roles
+from app.schemas.supplier import SupplierCreate, SupplierUpdate, SupplierOut
 
 router = APIRouter(prefix="/suppliers", tags=["suppliers"])
+WRITE_ROLES = (UserRole.gerencia, UserRole.administracion, UserRole.compras)
 
 
-@router.get("", response_model=List[SupplierOut])
+@router.get("/", response_model=list[SupplierOut])
 async def list_suppliers(
-    query: Optional[str] = Query(None),
-    familia: Optional[str] = Query(None),
-    max_dias: Optional[int] = Query(None),
-    min_fiabilidad: Optional[int] = Query(None),
+    q: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    _: User = Depends(get_current_user),
 ):
-    q = select(Supplier).where(Supplier.activo == True)
-    if query:
-        q = q.where(
-            or_(
-                Supplier.nombre.ilike(f"%{query}%"),
-                Supplier.ciudad.ilike(f"%{query}%"),
-                Supplier.estado_mx.ilike(f"%{query}%"),
-            )
-        )
-    if familia:
-        q = q.where(Supplier.familias.any(familia))
-    if max_dias is not None:
-        q = q.where(Supplier.tiempo_entrega_promedio_dias <= max_dias)
-    if min_fiabilidad is not None:
-        q = q.where(Supplier.fiabilidad_score >= min_fiabilidad)
-    result = await db.execute(q.order_by(Supplier.fiabilidad_score.desc()))
+    conditions = [Supplier.is_active == True]
+    if q:
+        term = f"%{q}%"
+        conditions.append(or_(Supplier.nombre.ilike(term), Supplier.rfc.ilike(term), Supplier.contacto.ilike(term)))
+    result = await db.execute(select(Supplier).where(and_(*conditions)).order_by(Supplier.nombre))
     return result.scalars().all()
 
 
-@router.post("", response_model=SupplierOut, status_code=201)
-async def create_supplier(
-    data: SupplierCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.compras, UserRole.gerente)),
-):
-    supplier = Supplier(**data.model_dump())
-    db.add(supplier)
-    await db.flush()
-    await db.refresh(supplier)
-    return supplier
-
-
 @router.get("/{supplier_id}", response_model=SupplierOut)
-async def get_supplier(
-    supplier_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+async def get_supplier(supplier_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_user)):
     result = await db.execute(select(Supplier).where(Supplier.id == supplier_id))
-    supplier = result.scalar_one_or_none()
-    if not supplier:
-        raise HTTPException(status_code=404, detail="Supplier not found")
-    return supplier
+    s = result.scalar_one_or_none()
+    if not s:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+    return s
 
 
-@router.put("/{supplier_id}", response_model=SupplierOut)
-async def update_supplier(
-    supplier_id: UUID,
-    data: SupplierUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.compras, UserRole.gerente)),
-):
+@router.post("/", response_model=SupplierOut, dependencies=[Depends(require_roles(*WRITE_ROLES))])
+async def create_supplier(body: SupplierCreate, db: AsyncSession = Depends(get_db)):
+    s = Supplier(**body.model_dump())
+    db.add(s)
+    await db.commit()
+    await db.refresh(s)
+    return s
+
+
+@router.patch("/{supplier_id}", response_model=SupplierOut, dependencies=[Depends(require_roles(*WRITE_ROLES))])
+async def update_supplier(supplier_id: int, body: SupplierUpdate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Supplier).where(Supplier.id == supplier_id))
-    supplier = result.scalar_one_or_none()
-    if not supplier:
-        raise HTTPException(status_code=404, detail="Supplier not found")
-    for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(supplier, field, value)
-    await db.flush()
-    return supplier
+    s = result.scalar_one_or_none()
+    if not s:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+    for field, value in body.model_dump(exclude_none=True).items():
+        setattr(s, field, value)
+    await db.commit()
+    await db.refresh(s)
+    return s

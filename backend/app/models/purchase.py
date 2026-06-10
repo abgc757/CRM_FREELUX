@@ -1,50 +1,75 @@
-import uuid
-from datetime import datetime
-from enum import Enum as PyEnum
-
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+import enum
+from datetime import datetime, date, timezone
+from decimal import Decimal
+from sqlalchemy import String, Enum, DateTime, Date, Integer, Numeric, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.database import Base
+from app.models.product import UnitType
 
 
-class PurchaseStatus(str, PyEnum):
+class PurchaseStatus(str, enum.Enum):
     borrador = "borrador"
     enviada = "enviada"
+    confirmada = "confirmada"
+    recibida_parcial = "recibida_parcial"
     recibida = "recibida"
     cancelada = "cancelada"
 
 
-class Purchase(Base):
-    __tablename__ = "purchases"
+class Supplier(Base):
+    __tablename__ = "suppliers"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    supplier_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=False)
-    solicitante_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    estado: Mapped[PurchaseStatus] = mapped_column(Enum(PurchaseStatus), default=PurchaseStatus.borrador, nullable=False)
-    fecha_esperada: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    subtotal: Mapped[float] = mapped_column(Numeric(14, 4), default=0.0, nullable=False)
-    iva: Mapped[float] = mapped_column(Numeric(14, 4), default=0.0, nullable=False)
-    total: Mapped[float] = mapped_column(Numeric(14, 4), default=0.0, nullable=False)
-    notas: Mapped[str] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    nombre: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    razon_social: Mapped[str | None] = mapped_column(String(255))
+    rfc: Mapped[str | None] = mapped_column(String(20))
+    contacto: Mapped[str | None] = mapped_column(String(255))
+    email: Mapped[str | None] = mapped_column(String(255))
+    telefono: Mapped[str | None] = mapped_column(String(30))
+    direccion: Mapped[str | None] = mapped_column(Text)
+    lead_time_dias: Mapped[int] = mapped_column(Integer, default=3)
+    notas: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Integer, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    supplier = relationship("Supplier", back_populates="purchases")
-    solicitante = relationship("User", foreign_keys=[solicitante_id])
-    items = relationship("PurchaseItem", back_populates="purchase", cascade="all, delete-orphan")
+    purchase_orders = relationship("PurchaseOrder", back_populates="supplier")
 
 
-class PurchaseItem(Base):
-    __tablename__ = "purchase_items"
+class PurchaseOrder(Base):
+    __tablename__ = "purchase_orders"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    purchase_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("purchases.id"), nullable=False)
-    product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=True)
-    descripcion: Mapped[str] = mapped_column(String(500), nullable=False)
-    cantidad: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
-    precio_unitario: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
-    cantidad_recibida: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    folio: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), index=True)
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
 
-    purchase = relationship("Purchase", back_populates="items")
-    product = relationship("Product")
+    status: Mapped[PurchaseStatus] = mapped_column(Enum(PurchaseStatus), default=PurchaseStatus.borrador)
+    fecha_requerida: Mapped[date | None] = mapped_column(Date)
+    notas: Mapped[str | None] = mapped_column(Text)
+
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    iva: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+    total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    supplier = relationship("Supplier", back_populates="purchase_orders")
+    items = relationship("PurchaseOrderItem", back_populates="order", cascade="all, delete-orphan")
+
+
+class PurchaseOrderItem(Base):
+    __tablename__ = "purchase_order_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id", ondelete="CASCADE"), index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
+
+    descripcion: Mapped[str] = mapped_column(String(500))
+    cantidad_solicitada: Mapped[Decimal] = mapped_column(Numeric(12, 4))
+    cantidad_recibida: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0)
+    unidad: Mapped[UnitType] = mapped_column(Enum(UnitType), default=UnitType.pza)
+    precio_unitario: Mapped[Decimal] = mapped_column(Numeric(12, 4))
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+
+    order = relationship("PurchaseOrder", back_populates="items")

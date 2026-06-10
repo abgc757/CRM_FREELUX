@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="header">
+  <div>
+    <div class="brand-name">FreeLux</div>
+    <div class="brand-sub">{{ empresa.nombre }}<br>RFC: {{ empresa.rfc }}</div>
+    <div class="brand-sub" style="margin-top:4px;">{{ empresa.direccion }}</div>
+    <div class="brand-sub">Tel: {{ empresa.telefono }} | {{ empresa.email }}</div>
+  </div>
+  <div>
+    <div class="doc-title">REMISIÓN</div>
+    <div class="doc-meta"><span class="doc-folio">{{ folio }}</span></div>
+    <div class="doc-meta">Fecha entrega: {{ fecha }}</div>
+    {% if venta_folio %}
+    <div class="doc-meta">Ref. venta: {{ venta_folio }}</div>
+    {% endif %}
+    {% if cfdi_uuid %}
+    <div class="doc-meta">UUID CFDI: {{ cfdi_uuid }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="info-grid">
+  <div class="info-block section">
+    <div class="section-title">Entregado a</div>
+    <p><strong>{{ cliente.nombre }}</strong></p>
+    {% if cliente.rfc %}<p>RFC: {{ cliente.rfc }}</p>{% endif %}
+    {% if cliente.direccion %}<p>{{ cliente.direccion }}</p>{% endif %}
+    {% if cliente.telefono %}<p>Tel: {{ cliente.telefono }}</p>{% endif %}
+  </div>
+  <div class="info-block section">
+    <div class="section-title">Entregado por</div>
+    <p><strong>{{ vendedor.nombre }}</strong></p>
+    <p>FreeLux — {{ empresa.nombre }}</p>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:8%">Clave</th>
+      <th style="width:50%">Descripción</th>
+      <th class="right" style="width:12%">Cant. Pedida</th>
+      <th class="right" style="width:12%">Cant. Entregada</th>
+      <th style="width:8%">Unid.</th>
+      <th style="width:10%">Observaciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td style="font-family:monospace; font-size:7.5pt;">{{ item.clave }}</td>
+      <td>{{ item.descripcion }}</td>
+      <td class="right">{{ item.cantidad }}</td>
+      <td class="right">{{ item.cantidad }}</td>
+      <td class="center">{{ item.unidad }}</td>
+      <td></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if notas %}
+<div class="notes"><strong>Notas:</strong> {{ notas }}</div>
+{% endif %}
+
+<div class="section" style="font-size:8pt; color:#444; margin-top:16px;">
+  Al recibir este documento, el cliente confirma haber recibido los productos listados en las cantidades indicadas y en buen estado, conformes con la orden de compra o cotización de referencia.
+</div>
+
+<div class="signatures">
+  <div>
+    <div class="signature-line">Firma y sello — Cliente<br><small>{{ cliente.nombre }}</small></div>
+  </div>
+  <div>
+    <div class="signature-line">Entregado por — FreeLux<br><small>{{ vendedor.nombre }}</small></div>
+  </div>
+</div>
+{% endblock %}

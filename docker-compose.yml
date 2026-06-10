@@ -1,283 +1,53 @@
-version: "3.9"
-
-networks:
-  freelux_network:
-    driver: bridge
-
-volumes:
-  postgres_data:
-  redis_data:
-  elasticsearch_data:
-  prometheus_data:
-  grafana_data:
-
 services:
-  # ─────────────────────────────────────────────
-  # Base de datos PostgreSQL
-  # ─────────────────────────────────────────────
   db:
     image: postgres:16-alpine
-    container_name: freelux_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: freelux_crm
-      POSTGRES_USER: freelux
-      POSTGRES_PASSWORD: freelux_dev_2024
-      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: ${POSTGRES_USER:-freelux}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-freelux_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-freelux_crm}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U freelux -d freelux_crm"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-freelux}"]
+      interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
-    networks:
-      - freelux_network
 
-  # ─────────────────────────────────────────────
-  # Redis (cache + broker Celery)
-  # ─────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: freelux_redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - redis_data:/data
     ports:
       - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - freelux_network
 
-  # ─────────────────────────────────────────────
-  # Backend FastAPI
-  # ─────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: freelux_backend
     restart: unless-stopped
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    env_file: ./backend/.env
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app
-    env_file:
-      - ./backend/.env
-    environment:
-      DATABASE_URL: postgresql+asyncpg://freelux:freelux_dev_2024@db:5432/freelux_crm
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - freelux_network
+    volumes:
+      - ./backend:/app
+      - media_files:/app/media
 
-  # ─────────────────────────────────────────────
-  # Frontend Next.js
-  # ─────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: freelux_frontend
     restart: unless-stopped
+    env_file: ./frontend/.env.local
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
-      NEXT_PUBLIC_APP_NAME: CRM FreeLux
-      NODE_ENV: development
     depends_on:
       - backend
-    networks:
-      - freelux_network
 
-  # ─────────────────────────────────────────────
-  # Celery Worker (tareas asíncronas)
-  # ─────────────────────────────────────────────
-  celery_worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: freelux_celery_worker
-    restart: unless-stopped
-    command: celery -A app.tasks.celery_app worker -l info -Q default,quotes,notifications --concurrency=4
-    volumes:
-      - ./backend:/app
-    env_file:
-      - ./backend/.env
-    environment:
-      DATABASE_URL: postgresql+asyncpg://freelux:freelux_dev_2024@db:5432/freelux_crm
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - freelux_network
-
-  # ─────────────────────────────────────────────
-  # Celery Beat (tareas programadas)
-  # ─────────────────────────────────────────────
-  celery_beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: freelux_celery_beat
-    restart: unless-stopped
-    command: celery -A app.tasks.celery_app beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-    volumes:
-      - ./backend:/app
-    env_file:
-      - ./backend/.env
-    environment:
-      DATABASE_URL: postgresql+asyncpg://freelux:freelux_dev_2024@db:5432/freelux_crm
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - freelux_network
-
-  # ─────────────────────────────────────────────
-  # Flower (monitor Celery)
-  # ─────────────────────────────────────────────
-  flower:
-    image: mher/flower:latest
-    container_name: freelux_flower
-    restart: unless-stopped
-    command: celery flower --broker=redis://redis:6379/1 --port=5555
-    ports:
-      - "5555:5555"
-    environment:
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
-      FLOWER_BASIC_AUTH: admin:freelux2024
-    depends_on:
-      - redis
-    networks:
-      - freelux_network
-
-  # ─────────────────────────────────────────────
-  # Elasticsearch (búsqueda full-text)
-  # ─────────────────────────────────────────────
-  elasticsearch:
-    image: elasticsearch:8.15.0
-    container_name: freelux_elasticsearch
-    restart: unless-stopped
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - cluster.name=freelux-cluster
-      - bootstrap.memory_lock=true
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    networks:
-      - freelux_network
-
-  # ─────────────────────────────────────────────
-  # Kibana (opcional — perfil monitoring)
-  # ─────────────────────────────────────────────
-  kibana:
-    image: kibana:8.15.0
-    container_name: freelux_kibana
-    restart: unless-stopped
-    ports:
-      - "5601:5601"
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-      KIBANA_SYSTEM_PASSWORD: freelux_kibana_2024
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    profiles:
-      - monitoring
-    networks:
-      - freelux_network
-
-  # ─────────────────────────────────────────────
-  # Prometheus (métricas)
-  # ─────────────────────────────────────────────
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: freelux_prometheus
-    restart: unless-stopped
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--web.console.libraries=/etc/prometheus/console_libraries"
-      - "--web.console.templates=/etc/prometheus/consoles"
-      - "--storage.tsdb.retention.time=15d"
-      - "--web.enable-lifecycle"
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    networks:
-      - freelux_network
-
-  # ─────────────────────────────────────────────
-  # Grafana (dashboards)
-  # ─────────────────────────────────────────────
-  grafana:
-    image: grafana/grafana:latest
-    container_name: freelux_grafana
-    restart: unless-stopped
-    ports:
-      - "3001:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: freelux_grafana_2024
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_SERVER_DOMAIN: localhost
-      GF_SMTP_ENABLED: "false"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
-    depends_on:
-      - prometheus
-    networks:
-      - freelux_network
+volumes:
+  postgres_data:
+  media_files:
