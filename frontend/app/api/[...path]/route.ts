@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND = (process.env.BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
+const BACKEND = (
+  process.env.BACKEND_URL ??
+  process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ??
+  "http://localhost:8000"
+).replace(/\/$/, "");
 
 async function handler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
