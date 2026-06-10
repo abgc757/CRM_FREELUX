@@ -3,13 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND = (
   process.env.BACKEND_URL ??
   process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ??
-  "http://localhost:8000"
+  (process.env.RENDER ? "https://crm-freelux-backend.onrender.com" : "http://localhost:8000")
 ).replace(/\/$/, "");
 
 async function handler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
   const url = new URL(req.url);
-  const target = `${BACKEND}/${path.join("/")}${url.search}`;
+  // path = ['v1','auth','login'] for /api/v1/auth/login → rebuild full /api/v1/... on backend
+  const target = `${BACKEND}/api/${path.join("/")}${url.search}`;
 
   const headers = new Headers(req.headers);
   headers.delete("host");
