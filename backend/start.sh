@@ -33,7 +33,7 @@ sys.path.insert(0, '/app')
 
 ADMIN_EMAIL    = os.environ.get("ADMIN_EMAIL",    "admin@freelux.mx")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Admin1234!")
-ADMIN_NOMBRE   = os.environ.get("ADMIN_NOMBRE",   "Administrador")
+ADMIN_NOMBRE   = os.environ.get("ADMIN_NOMBRE",   "Administrador FreeLux")
 
 async def seed():
     from app.database import AsyncSessionLocal
@@ -58,7 +58,7 @@ async def seed():
             db.add(User(
                 email=ADMIN_EMAIL,
                 hashed_password=hash_password(ADMIN_PASSWORD),
-                nombre=ADMIN_NOMBRE,
+                full_name=ADMIN_NOMBRE,
                 role=UserRole.gerencia,
                 is_active=True,
             ))
