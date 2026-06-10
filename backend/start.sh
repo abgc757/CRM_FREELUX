@@ -6,6 +6,14 @@
 
 set -e
 
+# Render inyecta DATABASE_URL como postgresql://...
+# SQLAlchemy async requiere postgresql+asyncpg://...
+# Esta línea lo convierte automáticamente.
+if [[ "$DATABASE_URL" == postgresql://* ]]; then
+  export DATABASE_URL="${DATABASE_URL/postgresql:\/\//postgresql+asyncpg://}"
+  echo "[start.sh] DATABASE_URL convertida a asyncpg"
+fi
+
 echo "[start.sh] Ejecutando migraciones Alembic..."
 alembic upgrade head
 
