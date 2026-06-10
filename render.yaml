@@ -97,11 +97,11 @@ services:
 
     dockerBuildArgs:
       - key: NEXT_PUBLIC_API_URL
-        value: https://crm-freelux-backend.onrender.com/api/v1
+        value: https://crm-freelux-backend-y7kz.onrender.com/api/v1
 
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://crm-freelux-backend.onrender.com/api/v1
+        value: https://crm-freelux-backend-y7kz.onrender.com/api/v1
 
   # ---------------------------------------------------------------------------
   # Redis
