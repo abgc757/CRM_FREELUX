@@ -24,6 +24,7 @@ app = FastAPI(
 _origins = list(filter(None, [
     settings.FRONTEND_URL,
     "http://localhost:3000",
+    "https://crm-freelux-frontend.onrender.com",
     "https://crm-freelux-frontend-y7kz.onrender.com",
 ]))
 

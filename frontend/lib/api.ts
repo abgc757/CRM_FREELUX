@@ -1,8 +1,19 @@
 import axios from "axios";
 
-export const api = axios.create({ baseURL: "/api/v1" });
+// En producción (Render) llamamos directo al backend — sin proxy.
+// En local usamos localhost. La URL se detecta en runtime por hostname.
+const isLocal =
+  typeof window === "undefined" || window.location.hostname === "localhost";
 
-const BACKEND = "";
+export const BACKEND_ORIGIN = isLocal
+  ? "http://localhost:8000"
+  : "https://crm-freelux-backend.onrender.com";
+
+const API_BASE = `${BACKEND_ORIGIN}/api/v1`;
+
+export const api = axios.create({ baseURL: API_BASE });
+
+const BACKEND = BACKEND_ORIGIN;
 
 /**
  * Descarga un archivo del backend con el JWT de sesión y lo abre en nueva pestaña.
@@ -45,7 +56,7 @@ api.interceptors.response.use(
       if (refresh) {
         try {
           const { data } = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+            `${API_BASE}/auth/refresh`,
             { refresh_token: refresh }
           );
           localStorage.setItem("access_token", data.access_token);
