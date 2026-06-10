@@ -13,6 +13,9 @@ ENV NODE_ENV=production
 
 COPY --from=base /app/.next/standalone ./
 COPY --from=base /app/.next/static ./.next/static
+
+# Crear directorio public antes de copiar (evita error si está vacío)
+RUN mkdir -p ./public
 COPY --from=base /app/public ./public
 
 EXPOSE 3000
