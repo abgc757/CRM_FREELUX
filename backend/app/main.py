@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 from app.core.config import settings
-from app.api.v1.router import api_router
+from app.api.v1.router import api_router, api_router_v1
 
 
 @asynccontextmanager
@@ -43,6 +43,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+app.include_router(api_router_v1)
 
 media_dir = settings.MEDIA_DIR
 if os.path.exists(media_dir):
