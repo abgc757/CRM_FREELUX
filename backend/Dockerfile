@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /app/media/products /app/media/pdfs
+RUN mkdir -p /app/media/products /app/media/pdfs /app/media/cfdi \
+    && chmod +x start.sh
 
+# Desarrollo local: hot-reload. En Render se sobreescribe con: bash start.sh
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

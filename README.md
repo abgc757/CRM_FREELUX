@@ -187,6 +187,125 @@ npm run dev
 
 ---
 
+## Script automatizado de despliegue local
+
+El archivo [`deploy.sh`](deploy.sh) automatiza todos los pasos de puesta en marcha:
+
+```bash
+bash deploy.sh
+```
+
+Qué hace el script:
+1. Verifica que Docker esté en ejecución
+2. Crea `backend/.env` desde `.env.example` si no existe
+3. Construye las imágenes y levanta los contenedores
+4. Espera a que PostgreSQL esté listo (healthcheck)
+5. Ejecuta las migraciones con Alembic
+6. Verifica que el backend responde
+7. Muestra las URLs y credenciales de acceso
+
+---
+
+## Despliegue en Render.com
+
+[Render.com](https://render.com) permite desplegar el proyecto completo en la nube usando el archivo [`render.yaml`](render.yaml) incluido en el repositorio.
+
+### Servicios que se crean automáticamente
+
+| Nombre | Tipo | Descripción |
+|--------|------|-------------|
+| `crm-freelux-backend` | Web Service (Docker) | FastAPI + Uvicorn |
+| `crm-freelux-frontend` | Web Service (Docker) | Next.js |
+| `crm-freelux-db` | PostgreSQL 16 | Base de datos managed |
+| `crm-freelux-redis` | Redis | Caché managed |
+
+### Paso 1 — Crear cuenta y conectar repositorio
+
+1. Crear cuenta en [render.com](https://render.com)
+2. En el dashboard ir a **New → Blueprint**
+3. Conectar el repositorio de GitHub/GitLab donde está el proyecto
+4. Render detecta el archivo `render.yaml` automáticamente
+
+### Paso 2 — Configurar variables de entorno sensibles
+
+Las siguientes variables **no se definen en `render.yaml`** por seguridad y deben configurarse manualmente en el dashboard de Render, en la sección **Environment** de cada servicio:
+
+**Backend (`crm-freelux-backend`):**
+
+| Variable | Valor |
+|----------|-------|
+| `DATABASE_URL` | `postgresql+asyncpg://<user>:<pass>@<host>/<db>` ⚠️ ver nota |
+| `FACTURAMA_USER` | Usuario de API de Facturama |
+| `FACTURAMA_PASSWORD` | Contraseña de API de Facturama |
+
+> **⚠️ Nota sobre `DATABASE_URL`:** Render inyecta la URL de PostgreSQL con el prefijo `postgresql://`, pero el backend requiere `postgresql+asyncpg://`. En el dashboard del servicio backend, ir a **Environment → DATABASE_URL** y reemplazar `postgresql://` por `postgresql+asyncpg://` en la URL provista por Render.
+
+### Paso 3 — Primer despliegue
+
+Render ejecuta automáticamente al iniciar el backend:
+
+```bash
+# backend/start.sh
+alembic upgrade head          # crea todas las tablas
+uvicorn app.main:app ...      # inicia el servidor
+```
+
+Las migraciones se ejecutan **en cada deploy**, por lo que las actualizaciones de esquema se aplican de forma automática y segura.
+
+### Paso 4 — Crear el usuario administrador inicial
+
+Una vez que los servicios estén en verde en el dashboard de Render, abrir la **Shell** del servicio backend y ejecutar:
+
+```bash
+python -c "
+import asyncio, sys; sys.path.insert(0, '/app')
+from app.database import AsyncSessionLocal
+from app.core.security import hash_password
+from app.models.user import User, UserRole
+from sqlalchemy import select
+
+async def seed():
+    async with AsyncSessionLocal() as db:
+        existing = (await db.execute(select(User).where(User.email == 'admin@freelux.mx'))).scalar_one_or_none()
+        if existing:
+            print('Usuario ya existe')
+            return
+        db.add(User(
+            email='admin@freelux.mx',
+            hashed_password=hash_password('Admin1234!'),
+            nombre='Administrador',
+            role=UserRole.gerencia,
+            is_active=True,
+        ))
+        await db.commit()
+        print('Usuario administrador creado')
+
+asyncio.run(seed())
+"
+```
+
+### Paso 5 — Acceder a la aplicación
+
+Las URLs públicas aparecen en el dashboard de Render una vez desplegado:
+
+| Recurso | URL (ejemplo) |
+|---------|---------------|
+| Frontend | `https://crm-freelux-frontend.onrender.com` |
+| Backend API | `https://crm-freelux-backend.onrender.com/docs` |
+
+### Consideraciones del plan gratuito de Render
+
+| Limitación | Plan Free | Solución |
+|------------|-----------|----------|
+| Inactividad | Los servicios se suspenden tras 15 min sin tráfico | Actualizar a plan **Starter** ($7/mes) |
+| PostgreSQL | Se elimina a los 90 días en plan free | Usar plan **Starter** ($7/mes) |
+| Disco | Sin disco persistente para archivos | Usar almacenamiento externo (S3, Cloudflare R2) para PDFs y CFDI |
+| RAM | 512 MB en plan free | Puede ser insuficiente para WeasyPrint; usar plan **Standard** |
+
+> Para un entorno de producción real se recomienda el plan **Starter** o superior en todos los servicios.
+
+---
+
 ## Módulos y funcionalidades
 
 ### Autenticación y usuarios

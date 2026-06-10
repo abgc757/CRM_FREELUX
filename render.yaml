@@ -1,0 +1,128 @@
+# =============================================================================
+# render.yaml — Infraestructura de CRM FreeLux en Render.com
+#
+# Servicios definidos:
+#   - crm-freelux-backend   Web Service (FastAPI + Uvicorn)
+#   - crm-freelux-frontend  Web Service (Next.js)
+#   - crm-freelux-db        PostgreSQL 16 (managed)
+#   - crm-freelux-redis     Redis (managed)
+#
+# Documentación: https://render.com/docs/infrastructure-as-code
+# =============================================================================
+
+databases:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — base de datos principal
+  # ---------------------------------------------------------------------------
+  - name: crm-freelux-db
+    databaseName: freelux_crm
+    user: freelux
+    plan: free           # Cambiar a "starter" o superior en producción real
+    region: oregon       # Elegir la región más cercana al usuario final
+
+services:
+  # ---------------------------------------------------------------------------
+  # Backend — FastAPI
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: crm-freelux-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: oregon
+    plan: free           # Cambiar a "starter" o superior en producción real
+
+    # Comando de inicio: ejecuta migraciones y luego arranca Uvicorn
+    dockerCommand: bash start.sh
+
+    # Variables de entorno del backend
+    envVars:
+      # Conexión a PostgreSQL (Render la inyecta automáticamente)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: crm-freelux-db
+          property: connectionString
+
+      # Adaptar la URL a asyncpg (Render entrega postgresql://, necesitamos postgresql+asyncpg://)
+      - key: DATABASE_URL
+        value: ""           # Se sobreescribe en el dashboard — ver nota más abajo
+
+      # JWT
+      - key: SECRET_KEY
+        generateValue: true   # Render genera un valor aleatorio seguro automáticamente
+
+      - key: ALGORITHM
+        value: HS256
+
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+
+      # Redis (URL provista por el servicio redis de abajo)
+      - key: REDIS_URL
+        fromService:
+          name: crm-freelux-redis
+          type: redis
+          property: connectionString
+
+      # CORS — dominio del frontend en Render
+      - key: FRONTEND_URL
+        fromService:
+          name: crm-freelux-frontend
+          type: web
+          property: host
+          envVarPrefix: https://
+
+      # Directorio de archivos generados (PDFs, CFDI)
+      - key: MEDIA_DIR
+        value: /app/media
+
+      # Facturama CFDI 4.0
+      # FACTURAMA_MOCK=true  →  no llama a Facturama, genera XML/PDF localmente
+      # FACTURAMA_MOCK=false →  timbrado real, requiere credenciales válidas
+      - key: FACTURAMA_MOCK
+        value: "false"        # Cambiar a "true" para pruebas / sandbox
+
+      - key: FACTURAMA_SANDBOX
+        value: "false"        # "true" apunta a apisandbox.facturama.mx
+
+      - key: FACTURAMA_USER
+        sync: false           # Se configura manualmente en el dashboard de Render
+
+      - key: FACTURAMA_PASSWORD
+        sync: false           # Se configura manualmente en el dashboard de Render
+
+    # Verificación de salud del servicio
+    healthCheckPath: /docs
+
+  # ---------------------------------------------------------------------------
+  # Frontend — Next.js
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: crm-freelux-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    region: oregon
+    plan: free
+
+    envVars:
+      # URL del backend en Render — se actualiza automáticamente al desplegar
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: crm-freelux-backend
+          type: web
+          property: host
+          envVarPrefix: https://
+        value: "/api/v1"      # Se concatena: https://<host>/api/v1
+
+  # ---------------------------------------------------------------------------
+  # Redis — caché y sesiones
+  # ---------------------------------------------------------------------------
+  - type: redis
+    name: crm-freelux-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
