@@ -36,18 +36,24 @@
     @apply inline-flex items-center justify-center gap-2
            bg-black hover:bg-neutral-800 active:bg-neutral-900
            text-white text-xs font-semibold tracking-wide uppercase
-           px-4 py-2 rounded
+           px-4 rounded
            transition-colors duration-150
            disabled:opacity-40 disabled:cursor-not-allowed;
+    min-height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   .btn-accent {
     @apply inline-flex items-center justify-center gap-2
            text-white text-xs font-semibold tracking-wide uppercase
-           px-4 py-2 rounded
+           px-4 rounded
            transition-colors duration-150
            disabled:opacity-40 disabled:cursor-not-allowed;
     background: var(--c-accent);
+    min-height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
   }
   .btn-accent:hover { background: #cc4f00; }
 
@@ -55,35 +61,42 @@
     @apply inline-flex items-center justify-center gap-2
            bg-white hover:bg-neutral-50 active:bg-neutral-100
            text-neutral-800 text-xs font-semibold tracking-wide uppercase
-           px-4 py-2 rounded
+           px-4 rounded
            transition-colors duration-150
            disabled:opacity-40 disabled:cursor-not-allowed;
     border: 1px solid var(--c-border2);
+    min-height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2
            hover:bg-neutral-100
            text-neutral-500 hover:text-neutral-800 text-xs font-medium
-           px-3 py-2 rounded
+           px-3 rounded
            transition-colors duration-150;
+    min-height: 36px;
   }
 
   /* ── Cards ── */
   .card {
     background: var(--c-surface);
     border: 1px solid var(--c-border);
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   /* ── Inputs ── */
   .input {
     @apply w-full bg-white text-sm text-neutral-900
-           px-3 py-2 rounded
+           px-3 rounded
            transition-colors duration-150
            disabled:bg-neutral-50 disabled:text-neutral-400 disabled:cursor-not-allowed;
     border: 1px solid var(--c-border2);
     outline: none;
+    min-height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
   }
   .input:focus {
     border-color: var(--c-text1);
@@ -94,22 +107,23 @@
   /* ── Labels ── */
   .label {
     display: block;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: .1em;
     text-transform: uppercase;
     color: var(--c-text2);
-    margin-bottom: 5px;
+    margin-bottom: 6px;
   }
 
   /* ── Badges ── */
   .badge {
     @apply inline-flex items-center gap-1 px-2 py-0.5;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: .06em;
+    letter-spacing: .05em;
     text-transform: uppercase;
-    border-radius: 2px;
+    border-radius: 3px;
+    white-space: nowrap;
   }
 
   /* ── Table ── */
@@ -118,10 +132,10 @@
     border-bottom: 1px solid var(--c-border);
   }
   .data-table thead th {
-    padding: 8px 12px;
-    font-size: 9px;
+    padding: 10px 14px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: .1em;
+    letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--c-text3);
     text-align: left;
@@ -133,7 +147,7 @@
   .data-table tbody tr:last-child { border-bottom: none; }
   .data-table tbody tr:hover { background: #fafafa; }
   .data-table tbody td {
-    padding: 10px 12px;
+    padding: 12px 14px;
     color: var(--c-text1);
   }
 
@@ -149,6 +163,154 @@
   /* ── Page header ── */
   .page-title { @apply text-lg font-bold tracking-tight; }
   .page-sub   { font-size: 12px; color: var(--c-text3); margin-top: 2px; }
+
+  /* ── Responsive layouts ── */
+  /* KPI grid: 2 cols mobile → 4 cols desktop */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (min-width: 1024px) {
+    .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  /* Two-col grid: 1 col mobile → 2 cols tablet+ */
+  .two-col-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 768px) {
+    .two-col-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Three-col grid: 1 → 2 → 3 */
+  .three-col-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (min-width: 1024px) {
+    .three-col-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ── Filter bar (horizontal scroll on mobile) ── */
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    flex-wrap: nowrap;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+
+  /* Filter pill button */
+  .filter-pill {
+    @apply flex-shrink-0 px-3 text-xs font-semibold rounded-full transition-colors;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .filter-pill-active {
+    background: var(--c-black);
+    color: #fff;
+  }
+  .filter-pill-inactive {
+    @apply bg-white text-neutral-600 hover:bg-neutral-100;
+    border: 1px solid var(--c-border2);
+  }
+
+  /* ── Mobile card row (used inside tables on mobile) ── */
+  .mobile-row {
+    @apply flex items-start justify-between p-4;
+    border-bottom: 1px solid var(--c-border);
+    text-decoration: none;
+    color: inherit;
+    transition: background .1s;
+  }
+  .mobile-row:hover { background: #fafafa; }
+  .mobile-row:last-child { border-bottom: none; }
+
+  /* ── Section panel header ── */
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .panel-header-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #555;
+  }
+  .panel-header-link {
+    font-size: 11px;
+    color: var(--c-accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .panel-header-link:hover { text-decoration: underline; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    @apply flex flex-col items-center justify-center text-center py-12 px-4;
+    color: var(--c-text3);
+    gap: 8px;
+  }
+  .empty-state p { font-size: 13px; }
+
+  /* ── Stat mini card (used in panels) ── */
+  .stat-mini {
+    text-align: center;
+    padding: 12px 8px;
+  }
+  .stat-mini .value {
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+    color: #111;
+  }
+  .stat-mini .value.warn { color: var(--c-accent); }
+  .stat-mini .value.danger { color: #c00; }
+  .stat-mini .lbl {
+    font-size: 10px;
+    color: #aaa;
+    margin-top: 4px;
+  }
+
+  /* ── Search input with icon ── */
+  .search-wrap { position: relative; }
+  .search-wrap .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--c-text3);
+    width: 15px;
+    height: 15px;
+  }
+  .search-wrap .input { padding-left: 38px; }
+
+  /* ── Page content wrapper with responsive padding ── */
+  .page-content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  @media (min-width: 640px) {
+    .page-content { padding: 20px; }
+  }
+  @media (min-width: 1024px) {
+    .page-content { padding: 28px; }
+  }
 }
 
 /* ── Custom scrollbar ── */
@@ -156,3 +318,10 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #b0b0b0; }
+
+/* ── Sidebar slide animation on mobile ── */
+.sidebar-enter { transform: translateX(-100%); }
+.sidebar-enter-active { transform: translateX(0); transition: transform 220ms ease; }
+
+/* ── Spin animation for loading ── */
+@keyframes spin { to { transform: rotate(360deg); } }
