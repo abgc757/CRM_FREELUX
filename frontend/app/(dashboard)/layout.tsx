@@ -158,7 +158,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     href === "/dashboard" ? pathname === href : pathname.startsWith(href);
 
   // Derive current section label for mobile topbar
-  const allItems = NAV_SECTIONS.flatMap(s => s.items);
+  const allItems = NAV_SECTIONS.flatMap(s => s.items as NavItem[]);
   const currentItem = allItems.find(i => isActive(i.href));
 
   return (
