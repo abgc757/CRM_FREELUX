@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual Interactivo — CRM FreeLux</title>
+<style>
+  :root {
+    --orange: #f97316; --orange-dark: #ea580c; --orange-light: #fed7aa;
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #cbd5e1;
+    --green: #22c55e; --blue: #3b82f6; --purple: #a855f7;
+    --yellow: #eab308; --red: #ef4444; --cyan: #06b6d4;
+    --border: #334155;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background:var(--bg); color:var(--text); display:flex; height:100vh; overflow:hidden; }
+
+  /* SIDEBAR */
+  #sidebar { width:280px; min-width:280px; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+  #sidebar-header { padding:16px; border-bottom:1px solid var(--border); }
+  #sidebar-header h1 { font-size:14px; font-weight:700; color:var(--orange); letter-spacing:.05em; }
+  #sidebar-header p { font-size:11px; color:var(--text2); margin-top:2px; }
+  #search-box { margin:10px 12px; position:relative; }
+  #search-box input { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:7px 10px 7px 30px; font-size:12px; color:var(--text); outline:none; }
+  #search-box input:focus { border-color:var(--orange); }
+  #search-box svg { position:absolute; left:9px; top:50%; transform:translateY(-50%); opacity:.4; }
+  #filter-tabs { display:flex; gap:4px; padding:0 12px 8px; flex-wrap:wrap; }
+  .filter-tab { font-size:10px; padding:3px 8px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text2); cursor:pointer; transition:.15s; }
+  .filter-tab:hover, .filter-tab.active { background:var(--orange); border-color:var(--orange); color:#fff; }
+  #file-tree { flex:1; overflow-y:auto; padding-bottom:20px; }
+  #file-tree::-webkit-scrollbar { width:4px; } #file-tree::-webkit-scrollbar-thumb { background:var(--bg3); border-radius:4px; }
+
+  .tree-group { margin-bottom:2px; }
+  .tree-group-header { display:flex; align-items:center; gap:6px; padding:6px 12px; cursor:pointer; font-size:11px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; user-select:none; }
+  .tree-group-header:hover { color:var(--text); }
+  .tree-group-header .chevron { transition:.2s; font-size:9px; }
+  .tree-group-header.open .chevron { transform:rotate(90deg); }
+  .tree-group-body { display:none; }
+  .tree-group-body.open { display:block; }
+
+  .tree-section { margin-left:12px; margin-bottom:2px; }
+  .tree-section-label { font-size:10px; color:var(--text2); padding:4px 12px 2px; opacity:.6; }
+
+  .file-item { display:flex; align-items:center; gap:8px; padding:5px 12px 5px 20px; cursor:pointer; border-radius:4px; margin:1px 4px; transition:.1s; font-size:12px; color:var(--text3); }
+  .file-item:hover { background:var(--bg3); color:var(--text); }
+  .file-item.active { background:var(--orange); color:#fff; }
+  .file-item .badge { margin-left:auto; font-size:9px; padding:1px 5px; border-radius:8px; white-space:nowrap; }
+  .badge-api { background:#1d4ed8; color:#bfdbfe; }
+  .badge-model { background:#5b21b6; color:#ddd6fe; }
+  .badge-service { background:#065f46; color:#a7f3d0; }
+  .badge-page { background:#78350f; color:#fed7aa; }
+  .badge-config { background:#374151; color:#d1d5db; }
+  .badge-migration { background:#1e3a5f; color:#93c5fd; }
+  .badge-template { background:#4a1d96; color:#e9d5ff; }
+
+  /* MAIN */
+  #main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  #topbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:10px 20px; display:flex; align-items:center; gap:12px; }
+  #breadcrumb { font-size:12px; color:var(--text2); display:flex; align-items:center; gap:6px; flex:1; overflow:hidden; white-space:nowrap; }
+  #breadcrumb span { color:var(--orange); font-weight:600; }
+  #copy-path-btn { font-size:11px; padding:4px 10px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; color:var(--text2); cursor:pointer; white-space:nowrap; }
+  #copy-path-btn:hover { border-color:var(--orange); color:var(--orange); }
+
+  #content { flex:1; overflow-y:auto; padding:24px; }
+  #content::-webkit-scrollbar { width:5px; } #content::-webkit-scrollbar-thumb { background:var(--bg3); border-radius:4px; }
+
+  /* WELCOME */
+  #welcome { max-width:900px; margin:0 auto; }
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin:20px 0; }
+  .stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:14px; text-align:center; }
+  .stat-card .num { font-size:26px; font-weight:700; color:var(--orange); }
+  .stat-card .lbl { font-size:11px; color:var(--text2); margin-top:2px; }
+  .tech-pills { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+  .tech-pill { font-size:11px; padding:3px 10px; border-radius:12px; border:1px solid; }
+
+  /* FILE DETAIL */
+  #file-detail { max-width:900px; }
+  .file-header { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:20px 24px; margin-bottom:20px; }
+  .file-header h2 { font-size:18px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:10px; }
+  .file-header .file-path { font-family:monospace; font-size:12px; color:var(--orange); margin-top:6px; background:var(--bg); padding:6px 10px; border-radius:5px; display:inline-block; }
+  .file-header .desc { font-size:13px; color:var(--text2); margin-top:10px; line-height:1.6; }
+  .file-header .meta-row { display:flex; gap:16px; margin-top:12px; flex-wrap:wrap; }
+  .meta-item { font-size:11px; color:var(--text2); display:flex; align-items:center; gap:5px; }
+  .meta-item strong { color:var(--text3); }
+
+  .section-card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; margin-bottom:16px; overflow:hidden; }
+  .section-card h3 { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; padding:10px 16px; border-bottom:1px solid var(--border); background:var(--bg3); display:flex; align-items:center; gap:8px; }
+  .section-card-body { padding:14px 16px; }
+
+  .func-list { list-style:none; }
+  .func-item { padding:8px 0; border-bottom:1px solid var(--border); display:flex; gap:12px; align-items:flex-start; }
+  .func-item:last-child { border-bottom:none; }
+  .func-name { font-family:monospace; font-size:12px; color:var(--cyan); min-width:180px; }
+  .func-desc { font-size:12px; color:var(--text2); line-height:1.5; }
+
+  .endpoint-item { padding:7px 0; border-bottom:1px solid var(--border); display:flex; gap:10px; align-items:flex-start; }
+  .endpoint-item:last-child { border-bottom:none; }
+  .method { font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; min-width:42px; text-align:center; }
+  .GET { background:#14532d; color:#86efac; } .POST { background:#1e3a5f; color:#93c5fd; }
+  .PUT { background:#451a03; color:#fdba74; } .DELETE { background:#4c0519; color:#fca5a5; }
+  .PATCH { background:#3b0764; color:#d8b4fe; }
+  .endpoint-path { font-family:monospace; font-size:12px; color:var(--text3); }
+  .endpoint-desc { font-size:12px; color:var(--text2); margin-left:auto; text-align:right; max-width:260px; }
+
+  .dep-tag { display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:3px 8px; border-radius:12px; border:1px solid var(--border); margin:3px; color:var(--text2); }
+
+  .action-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .action-card { background:var(--bg3); border-radius:7px; padding:12px; border:1px solid var(--border); }
+  .action-card h4 { font-size:11px; font-weight:600; color:var(--orange); margin-bottom:6px; }
+  .action-card p { font-size:11px; color:var(--text2); line-height:1.5; }
+  .action-card code { font-family:monospace; font-size:10px; background:var(--bg); padding:1px 4px; border-radius:3px; color:var(--cyan); }
+
+  .warn-box { background:#2d1b00; border:1px solid #92400e; border-radius:7px; padding:10px 14px; font-size:12px; color:#fbbf24; margin-bottom:12px; }
+  .info-box { background:#0c2340; border:1px solid #1d4ed8; border-radius:7px; padding:10px 14px; font-size:12px; color:#93c5fd; margin-bottom:12px; }
+
+  .no-results { text-align:center; color:var(--text2); padding:40px 20px; font-size:13px; }
+
+  /* icons */
+  .icon { font-size:14px; }
+
+  @media (max-width:700px) {
+    #sidebar { width:220px; min-width:220px; }
+    .action-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>📦 CRM FreeLux</h1>
+    <p>Manual de Archivos del Sistema</p>
+  </div>
+  <div id="search-box">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="search-input" placeholder="Buscar archivo o función..." oninput="filterFiles()">
+  </div>
+  <div id="filter-tabs">
+    <button class="filter-tab active" onclick="setFilter('all',this)">Todos</button>
+    <button class="filter-tab" onclick="setFilter('backend',this)">Backend</button>
+    <button class="filter-tab" onclick="setFilter('frontend',this)">Frontend</button>
+    <button class="filter-tab" onclick="setFilter('config',this)">Config</button>
+  </div>
+  <div id="file-tree"></div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <div id="breadcrumb">🏠 <span>Inicio</span></div>
+    <button id="copy-path-btn" onclick="copyPath()" style="display:none">📋 Copiar ruta</button>
+  </div>
+  <div id="content">
+    <div id="welcome"></div>
+    <div id="file-detail" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const FILES = [
+// ── ROOT ──────────────────────────────────────────────────────────────────
+{
+  id:'docker-compose',
+  label:'docker-compose.yml',
+  path:'D:\\CRM_FREELUX\\docker-compose.yml',
+  group:'config', section:'Raíz del proyecto',
+  badges:['config'],
+  icon:'🐳',
+  desc:'Orquestación multi-contenedor Docker. Define 4 servicios: db (PostgreSQL 16), redis (Redis 7), backend (FastAPI) y frontend (Next.js). Gestiona redes, volúmenes persistentes y orden de arranque con healthchecks.',
+  type:'YAML',
+  role:'DevOps / Infraestructura',
+  relatedFiles:['backend/Dockerfile','frontend/Dockerfile','render.yaml'],
+  functions:[
+    { name:'service: db', desc:'PostgreSQL 16. Volumen postgres_data persistente. Healthcheck con pg_isready cada 5s.' },
+    { name:'service: redis', desc:'Redis 7 Alpine. Persistencia AOF activada (appendonly yes).' },
+    { name:'service: backend', desc:'Construye desde backend/Dockerfile. Variables de entorno del .env. Depende de db y redis healthy.' },
+    { name:'service: frontend', desc:'Construye desde frontend/Dockerfile. Expone puerto 3000. Variable NEXT_PUBLIC_API_URL apunta al backend.' },
+  ],
+  actions:[
+    { title:'Levantar todo', body:'docker compose up -d --build' },
+    { title:'Ver logs', body:'docker compose logs -f backend' },
+    { title:'Reconstruir solo backend', body:'docker compose up -d --build backend' },
+    { title:'Detener todo', body:'docker compose down' },
+  ]
+},
+{
+  id:'render-yaml',
+  label:'render.yaml',
+  path:'D:\\CRM_FREELUX\\render.yaml',
+  group:'config', section:'Raíz del proyecto',
+  badges:['config'],
+  icon:'☁️',
+  desc:'Blueprint de despliegue en Render.com. Define servicios web para backend y frontend, base de datos PostgreSQL gestionada y caché Redis. Permite desplegar con un clic en la nube.',
+  type:'YAML',
+  role:'DevOps / Cloud Deploy',
+  relatedFiles:['docker-compose.yml','deploy.sh'],
+  functions:[
+    { name:'services[backend]', desc:'Web service Python, build command instala requirements.txt, start command ejecuta start.sh.' },
+    { name:'services[frontend]', desc:'Web service Node, build con npm run build, start con npm start.' },
+    { name:'databases[postgresql]', desc:'PostgreSQL gestionado por Render. Plan free para dev, standard-0 para producción.' },
+  ],
+  actions:[
+    { title:'Desplegar en Render', body:'Conectar repo en Render.com → New Blueprint → seleccionar render.yaml' },
+    { title:'Verificar variables', body:'En Render dashboard: Environment → revisar DATABASE_URL, SECRET_KEY, etc.' },
+  ]
+},
+{
+  id:'deploy-sh',
+  label:'deploy.sh',
+  path:'D:\\CRM_FREELUX\\deploy.sh',
+  group:'config', section:'Raíz del proyecto',
+  badges:['config'],
+  icon:'🚀',
+  desc:'Script bash de despliegue local automatizado. Ejecuta migraciones Alembic, construye imágenes Docker y levanta todos los servicios en orden correcto.',
+  type:'Shell Script',
+  role:'DevOps',
+  relatedFiles:['docker-compose.yml'],
+  functions:[
+    { name:'build_images()', desc:'Construye imágenes Docker para backend y frontend.' },
+    { name:'run_migrations()', desc:'Ejecuta alembic upgrade head dentro del contenedor backend.' },
+    { name:'start_services()', desc:'Levanta todos los servicios con docker compose up -d.' },
+  ],
+  actions:[
+    { title:'Ejecutar despliegue', body:'bash deploy.sh' },
+  ]
+},
+{
+  id:'readme',
+  label:'README.md',
+  path:'D:\\CRM_FREELUX\\README.md',
+  group:'config', section:'Raíz del proyecto',
+  badges:['config'],
+  icon:'📖',
+  desc:'Documentación general del proyecto. Describe la arquitectura, requisitos, instrucciones de instalación, variables de entorno, flujos de uso y referencia de endpoints API.',
+  type:'Markdown',
+  role:'Documentación',
+  relatedFiles:[],
+  functions:[],
+  actions:[{ title:'Ver en GitHub', body:'Renderizado automáticamente como portada del repositorio' }]
+},
+
+// ── BACKEND CORE ──────────────────────────────────────────────────────────
+{
+  id:'backend-main',
+  label:'main.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\main.py',
+  group:'backend', section:'Backend — Core',
+  badges:['config'],
+  icon:'⚡',
+  desc:'Punto de entrada de la aplicación FastAPI. Configura CORS, registra todos los routers de la API v1, define el evento lifespan para inicializar la conexión a Redis y la base de datos, y expone el endpoint de health-check.',
+  type:'Python',
+  role:'Backend Core',
+  relatedFiles:['backend/app/api/v1/router.py','backend/app/database.py','backend/app/core/config.py'],
+  functions:[
+    { name:'lifespan()', desc:'Context manager async. Inicializa pool Redis al startup, lo cierra al shutdown.' },
+    { name:'app = FastAPI()', desc:'Instancia principal con metadata (title, version). Se crea aquí.' },
+    { name:'app.add_middleware(CORSMiddleware)', desc:'Permite origen del frontend. Configurar origins en producción.' },
+    { name:'app.include_router(api_router)', desc:'Registra todos los endpoints bajo el prefijo /api/v1.' },
+    { name:'GET /health', desc:'Endpoint de health-check. Responde {"status":"ok"}.' },
+  ],
+  actions:[
+    { title:'Agregar nuevo middleware', body:'app.add_middleware(MiMiddleware, param=valor) — antes del include_router' },
+    { title:'Cambiar prefijo API', body:'Modificar prefix en app.include_router(api_router, prefix="/api/v1")' },
+    { title:'Correr en desarrollo', body:'uvicorn app.main:app --reload --port 8000' },
+  ]
+},
+{
+  id:'backend-database',
+  label:'database.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\database.py',
+  group:'backend', section:'Backend — Core',
+  badges:['config'],
+  icon:'🗄️',
+  desc:'Configuración del motor asíncrono de SQLAlchemy. Crea el engine con asyncpg, la SessionLocal como sessionmaker async, y la función get_db usada como dependencia en todos los endpoints para inyectar la sesión de base de datos.',
+  type:'Python',
+  role:'Backend Core',
+  relatedFiles:['backend/app/core/config.py','backend/app/models/'],
+  functions:[
+    { name:'engine', desc:'AsyncEngine creado con create_async_engine(DATABASE_URL). Pool size configurable.' },
+    { name:'AsyncSessionLocal', desc:'sessionmaker con class_=AsyncSession, expire_on_commit=False.' },
+    { name:'get_db()', desc:'Dependencia FastAPI. Genera y cierra sesión async con context manager.' },
+    { name:'Base', desc:'DeclarativeBase de SQLAlchemy. Todos los modelos heredan de aquí.' },
+  ],
+  actions:[
+    { title:'Cambiar pool size', body:'create_async_engine(url, pool_size=20, max_overflow=10)' },
+    { title:'Activar echo SQL', body:'create_async_engine(url, echo=True) — solo para debug' },
+  ]
+},
+{
+  id:'backend-config',
+  label:'core/config.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\core\\config.py',
+  group:'backend', section:'Backend — Core',
+  badges:['config'],
+  icon:'⚙️',
+  desc:'Configuración centralizada con Pydantic BaseSettings. Lee todas las variables de entorno (DATABASE_URL, SECRET_KEY, FACTURAMA_*, REDIS_URL). Exporta el objeto settings usado en toda la aplicación.',
+  type:'Python',
+  role:'Backend Core',
+  relatedFiles:['backend/.env','backend/.env.example'],
+  functions:[
+    { name:'class Settings(BaseSettings)', desc:'Define todos los campos con tipos y defaults. Valida al arrancar.' },
+    { name:'settings', desc:'Instancia singleton importada en módulos: from app.core.config import settings' },
+  ],
+  actions:[
+    { title:'Agregar nueva variable', body:'Añadir campo en clase Settings con tipo y default. Añadir al .env y .env.example' },
+    { title:'Cambiar a producción CFDI', body:'FACTURAMA_MOCK=false, FACTURAMA_SANDBOX=false en .env' },
+  ]
+},
+{
+  id:'backend-security',
+  label:'core/security.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\core\\security.py',
+  group:'backend', section:'Backend — Core',
+  badges:['config'],
+  icon:'🔐',
+  desc:'Utilidades de seguridad: hashing de contraseñas con bcrypt (passlib), creación y verificación de JWT (python-jose). Define los algoritmos, tiempos de expiración y estructura del payload.',
+  type:'Python',
+  role:'Backend Core',
+  relatedFiles:['backend/app/core/config.py','backend/app/api/v1/auth.py','backend/app/core/dependencies.py'],
+  functions:[
+    { name:'hash_password(plain)', desc:'Devuelve hash bcrypt de la contraseña.' },
+    { name:'verify_password(plain, hashed)', desc:'Compara contraseña con hash bcrypt. Retorna bool.' },
+    { name:'create_access_token(data, expires_delta)', desc:'JWT con exp 60min por default. Usa SECRET_KEY.' },
+    { name:'create_refresh_token(data)', desc:'JWT con exp 7 días.' },
+    { name:'decode_token(token)', desc:'Decodifica y valida JWT. Lanza HTTPException 401 si inválido/expirado.' },
+  ],
+  actions:[
+    { title:'Cambiar expiración access token', body:'ACCESS_TOKEN_EXPIRE_MINUTES = 120  # en config.py o aquí' },
+    { title:'Rotar SECRET_KEY', body:'Cambiar SECRET_KEY en .env — invalida todos los tokens activos' },
+  ]
+},
+{
+  id:'backend-dependencies',
+  label:'core/dependencies.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\core\\dependencies.py',
+  group:'backend', section:'Backend — Core',
+  badges:['config'],
+  icon:'🔗',
+  desc:'Dependencias FastAPI reutilizables: get_current_user extrae y valida el JWT del header Authorization, require_roles verifica que el usuario tenga el rol necesario. Se usan como parámetros Depends() en los endpoints.',
+  type:'Python',
+  role:'Backend Core',
+  relatedFiles:['backend/app/core/security.py','backend/app/models/user.py'],
+  functions:[
+    { name:'get_current_user(token, db)', desc:'Decodifica JWT, busca usuario en BD. Lanza 401 si no existe o inactivo.' },
+    { name:'require_roles(*roles)', desc:'Factory que devuelve dependencia verificadora de roles. Lanza 403 si rol no permitido.' },
+    { name:'get_db', desc:'Re-exporta dependencia de sesión de base de datos.' },
+  ],
+  actions:[
+    { title:'Proteger endpoint con rol', body:'@router.get("/ruta")\nasync def endpoint(user=Depends(require_roles("gerencia","admin")))' },
+  ]
+},
+
+// ── BACKEND MODELS ─────────────────────────────────────────────────────────
+{
+  id:'model-user',
+  label:'models/user.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\models\\user.py',
+  group:'backend', section:'Backend — Modelos',
+  badges:['model'],
+  icon:'👤',
+  desc:'Modelo ORM User. Tabla users con campos: id, email, hashed_password, nombre, rol (enum), activo, timestamps. Define Enum UserRole con los 5 roles del sistema.',
+  type:'Python / SQLAlchemy',
+  role:'Modelo de datos',
+  relatedFiles:['backend/app/schemas/user.py','backend/app/api/v1/users.py','backend/app/core/security.py'],
+  functions:[
+    { name:'class UserRole(Enum)', desc:'gerencia, administracion, ventas, compras, almacen' },
+    { name:'class User(Base)', desc:'Tabla users. Relación one-to-many con Quote, Sale (como vendedor).' },
+  ],
+  actions:[
+    { title:'Agregar nuevo rol', body:'1. Añadir a UserRole enum\n2. Generar migración Alembic\n3. Actualizar require_roles() donde aplique' },
+    { title:'Añadir campo al usuario', body:'1. Nuevo Column en User\n2. Añadir al schema Pydantic\n3. Generar migración' },
+  ]
+},
+{
+  id:'model-product',
+  label:'models/product.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\models\\product.py',
+  group:'backend', section:'Backend — Modelos',
+  badges:['model'],
+  icon:'📦',
+  desc:'Modelos Product, ProductPrice y ProductPriceHistory. Producto con SKU único (clave), unidad, stock (actual/min/max), categoría y departamento. ProductPrice almacena los 4 niveles de precio por tipo de cliente. ProductPriceHistory audita cada cambio de precio.',
+  type:'Python / SQLAlchemy',
+  role:'Modelo de datos',
+  relatedFiles:['backend/app/schemas/product.py','backend/app/api/v1/products.py','backend/app/services/price_engine.py'],
+  functions:[
+    { name:'class Product(Base)', desc:'Tabla products. Relaciones: prices (1→N ProductPrice), price_history, quote_items, purchase_items.' },
+    { name:'class ProductPrice(Base)', desc:'Tabla product_prices. Campos: tipo_precio (público_general|contratista|constructora|mayorista), precio, volumen_minimo.' },
+    { name:'class ProductPriceHistory(Base)', desc:'Tabla product_price_history. Audita cambios: precio_anterior, precio_nuevo, reason, changed_by.' },
+  ],
+  actions:[
+    { title:'Añadir tipo de precio nuevo', body:'1. Modificar enum PriceTipo\n2. Migración Alembic\n3. Actualizar price_engine.py' },
+    { title:'Agregar campo al producto', body:'Nuevo Column en Product + migración + schema' },
+    { title:'Bug: precio no guarda', body:'Revisar price_engine.py → save_prices() y relación product.prices en SQLAlchemy' },
+  ]
+},
+{
+  id:'model-client',
+  label:'models/client.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\models\\client.py',
+  group:'backend', section:'Backend — Modelos',
+  badges:['model'],
+  icon:'🏢',
+  desc:'Modelo Client. Incluye datos fiscales (RFC, razón social, régimen fiscal, uso CFDI), información de contacto, asignación de vendedor, y campos de crédito (límite, saldo pendiente, días de crédito).',
+  type:'Python / SQLAlchemy',
+  role:'Modelo de datos',
+  relatedFiles:['backend/app/schemas/client.py','backend/app/api/v1/clients.py','backend/app/api/v1/collections.py'],
+  functions:[
+    { name:'class Client(Base)', desc:'Tabla clients. Relaciones: quotes, sales, assigned_seller (User).' },
+    { name:'saldo_pendiente', desc:'Columna calculada/actualizada al registrar pagos. Usada en colección de cartera.' },
+  ],
+  actions:[
+    { title:'Añadir campo de contacto', body:'Nuevo Column + migración + schema + frontend form' },
+    { title:'Bug: saldo_pendiente incorrecto', body:'Revisar api/v1/sales.py → endpoint de pagos que actualiza client.saldo_pendiente' },
+  ]
+},
+{
+  id:'model-quote',
+  label:'models/quote.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\models\\quote.py',
+  group:'backend', section:'Backend — Modelos',
+  badges:['model'],
+  icon:'📋',
+  desc:'Modelos Quote y QuoteItem. Cotización con folio auto-numerado (COT-000001), cliente, vendedor, condiciones de pago, vigencia y status workflow (borrador→enviada→aprobada→convertida). QuoteItem representa cada línea con producto, cantidad, precio y conversión de unidades.',
+  type:'Python / SQLAlchemy',
+  role:'Modelo de datos',
+  relatedFiles:['backend/app/schemas/quote.py','backend/app/api/v1/quotes.py','backend/app/services/pdf_generator.py'],
+  functions:[
+    { name:'class QuoteStatus(Enum)', desc:'borrador, enviada, aprobada, rechazada, convertida, expirada' },
+    { name:'class Quote(Base)', desc:'Tabla quotes. Relaciones: client, seller, items, sale (cuando se convierte).' },
+    { name:'class QuoteItem(Base)', desc:'Tabla quote_items. Fields: product_id, descripcion, cantidad, unidad, precio_unitario, subtotal.' },
+  ],
+  actions:[
+    { title:'Agregar nuevo estado', body:'1. Añadir a QuoteStatus enum\n2. Migración\n3. Actualizar lógica en quotes.py' },
+    { title:'Bug: folio duplicado', body:'Revisar función generate_folio() en api/v1/quotes.py — posible race condition en concurrencia' },
+  ]
+},
+{
+  id:'model-sale',
+  label:'models/sale.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\models\\sale.py',
+  group:'backend', section:'Backend — Modelos',
+  badges:['model'],
+  icon:'💰',
+  desc:'Modelos Sale y Payment. Venta con folio (VTA-000001), método de pago, estado CFDI (UUID, XML/PDF URLs de Facturama), referencia a cotización origen. Payment registra cada pago parcial o total contra la venta.',
+  type:'Python / SQLAlchemy',
+  role:'Modelo de datos',
+  relatedFiles:['backend/app/schemas/sale.py','backend/app/api/v1/sales.py','backend/app/services/facturama.py'],
+  functions:[
+    { name:'class SaleStatus(Enum)', desc:'pendiente, pagada_parcial, pagada, cancelada' },
+    { name:'class Sale(Base)', desc:'Tabla sales. FK a Quote, Client, User. Campos CFDI: cfdi_uuid, cfdi_xml_url, cfdi_pdf_url.' },
+    { name:'class Payment(Base)', desc:'Tabla payments. monto, metodo_pago, fecha, referencia, notas.' },
+  ],
+  actions:[
+    { title:'Bug: CFDI UUID no se guarda', body:'Revisar api/v1/sales.py → endpoint /cfdi, línea donde sale.cfdi_uuid = result["uuid"]' },
+    { title:'Añadir campo a Payment', body:'Nuevo Column en Payment + migración + schema PaymentCreate' },
+  ]
+},
+{
+  id:'model-purchase',
+  label:'models/purchase.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\models\\purchase.py',
+  group:'backend', section:'Backend — Modelos',
+  badges:['model'],
+  icon:'🛒',
+  desc:'Modelos Supplier, PurchaseOrder y PurchaseOrderItem. Proveedor con datos fiscales y tiempo de entrega. Orden de compra con status workflow (borrador→enviada→confirmada→recibida_parcial→recibida). Item con cantidad_ordenada y cantidad_recibida para recepciones parciales.',
+  type:'Python / SQLAlchemy',
+  role:'Modelo de datos',
+  relatedFiles:['backend/app/schemas/purchase.py','backend/app/api/v1/purchases.py','backend/app/api/v1/suppliers.py'],
+  functions:[
+    { name:'class Supplier(Base)', desc:'Tabla suppliers. RFC, datos contacto, lead_time_dias.' },
+    { name:'class PurchaseOrder(Base)', desc:'Tabla purchase_orders. Relación a supplier e items.' },
+    { name:'class PurchaseOrderItem(Base)', desc:'cantidad_ordenada, cantidad_recibida, precio_unitario.' },
+  ],
+  actions:[
+    { title:'Registrar recepción parcial', body:'PUT /purchases/{id}/receive → actualiza cantidad_recibida en items y status de la PO' },
+  ]
+},
+{
+  id:'model-inventory',
+  label:'models/inventory.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\models\\inventory.py',
+  group:'backend', section:'Backend — Modelos',
+  badges:['model'],
+  icon:'📊',
+  desc:'Modelo InventoryMovement. Registra cada movimiento de inventario con tipo (entrada/salida/ajuste_positivo/ajuste_negativo/devolución), cantidades antes y después, referencia al documento origen (venta o compra) y usuario que lo generó.',
+  type:'Python / SQLAlchemy',
+  role:'Modelo de datos',
+  relatedFiles:['backend/app/api/v1/inventory.py','backend/app/api/v1/sales.py','backend/app/api/v1/purchases.py'],
+  functions:[
+    { name:'class MovementType(Enum)', desc:'entrada, salida, ajuste_positivo, ajuste_negativo, devolucion' },
+    { name:'class InventoryMovement(Base)', desc:'stock_before, stock_after, referencia_tipo, referencia_id, created_by.' },
+  ],
+  actions:[
+    { title:'Ver historial de un producto', body:'GET /inventory/movements?product_id=X&limit=50' },
+    { title:'Bug: stock negativo', body:'Revisar api/v1/sales.py → confirmación de venta: verificar validación before_stock >= cantidad' },
+  ]
+},
+
+// ── BACKEND APIs ───────────────────────────────────────────────────────────
+{
+  id:'api-router',
+  label:'api/v1/router.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\router.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'🔀',
+  desc:'Agregador de routers. Importa y registra todos los routers de la API v1 bajo sus prefijos correspondientes. Es el único lugar donde se añaden nuevos módulos de endpoints.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/main.py'],
+  functions:[
+    { name:'api_router', desc:'APIRouter principal. Incluye: auth, users, products, clients, quotes, sales, documents, suppliers, purchases, inventory, collections, reports.' },
+  ],
+  endpoints:[],
+  actions:[
+    { title:'Registrar nuevo módulo', body:'from app.api.v1 import mi_modulo\napi_router.include_router(mi_modulo.router, prefix="/mi-modulo", tags=["Mi Módulo"])' },
+  ]
+},
+{
+  id:'api-auth',
+  label:'api/v1/auth.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\auth.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'🔑',
+  desc:'Endpoints de autenticación. Login con OAuth2PasswordRequestForm, refresh de token, logout (invalida en Redis) y seed del admin inicial. Genera access_token (60min) y refresh_token (7días).',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/core/security.py','backend/app/core/dependencies.py'],
+  endpoints:[
+    { method:'POST', path:'/auth/login', desc:'Credenciales → access + refresh token' },
+    { method:'POST', path:'/auth/refresh', desc:'Refresh token → nuevo access token' },
+    { method:'POST', path:'/auth/logout', desc:'Invalida refresh token en Redis' },
+    { method:'POST', path:'/auth/seed-admin', desc:'Crea usuario admin inicial (solo si no existe ninguno)' },
+  ],
+  actions:[
+    { title:'Bug: token no refresca', body:'Revisar /auth/refresh: decodifica refresh token, busca en Redis whitelist, genera nuevo access_token' },
+    { title:'Extender expiración', body:'Cambiar ACCESS_TOKEN_EXPIRE_MINUTES en core/config.py' },
+  ]
+},
+{
+  id:'api-products',
+  label:'api/v1/products.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\products.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'📦',
+  desc:'CRUD completo de productos, gestión de precios multi-nivel, importación masiva CSV (formato SICAR) y listado de categorías/departamentos. Incluye paginación y búsqueda por texto.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/product.py','backend/app/services/price_engine.py','backend/app/services/csv_importer.py'],
+  endpoints:[
+    { method:'GET', path:'/products', desc:'Lista paginada con búsqueda (search, categoria, skip, limit)' },
+    { method:'POST', path:'/products', desc:'Crea producto con precios opcionales' },
+    { method:'GET', path:'/products/{id}', desc:'Detalle con precios e historial' },
+    { method:'PUT', path:'/products/{id}', desc:'Actualiza campos y precios' },
+    { method:'DELETE', path:'/products/{id}', desc:'Soft-delete (activo=false)' },
+    { method:'POST', path:'/products/import', desc:'Importa CSV masivo formato SICAR' },
+    { method:'GET', path:'/products/categories', desc:'Lista departamentos y categorías únicos' },
+  ],
+  actions:[
+    { title:'Bug: CSV import falla', body:'Revisar services/csv_importer.py → parse_row() para el formato de columnas esperado' },
+    { title:'Añadir filtro por stock mínimo', body:'Añadir query param stock_alert: bool en GET /products, filtrar .where(Product.stock_actual <= Product.stock_minimo)' },
+  ]
+},
+{
+  id:'api-clients',
+  label:'api/v1/clients.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\clients.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'🏢',
+  desc:'CRUD de clientes con búsqueda por nombre/RFC, asignación de vendedor y validación de RFC único. Retorna crédito disponible calculado en cada respuesta.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/client.py','backend/app/schemas/client.py'],
+  endpoints:[
+    { method:'GET', path:'/clients', desc:'Lista con búsqueda y paginación' },
+    { method:'POST', path:'/clients', desc:'Crea cliente (valida RFC único)' },
+    { method:'GET', path:'/clients/{id}', desc:'Detalle con historial de ventas' },
+    { method:'PUT', path:'/clients/{id}', desc:'Actualiza datos y crédito' },
+    { method:'DELETE', path:'/clients/{id}', desc:'Soft-delete' },
+  ],
+  actions:[
+    { title:'Bug: RFC duplicado no valida', body:'Buscar en POST handler: SELECT WHERE rfc = req.rfc antes de INSERT' },
+  ]
+},
+{
+  id:'api-quotes',
+  label:'api/v1/quotes.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\quotes.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'📋',
+  desc:'Gestión completa del ciclo de cotizaciones. Creación con líneas de producto, actualización de status, envío por email (placeholder), aprobación y conversión a venta. Genera folio correlativo atómico.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/quote.py','backend/app/models/sale.py','backend/app/services/pdf_generator.py'],
+  endpoints:[
+    { method:'GET', path:'/quotes', desc:'Lista con filtros de status, cliente, vendedor, fechas' },
+    { method:'POST', path:'/quotes', desc:'Crea cotización con items. Genera folio COT-XXXXXX' },
+    { method:'GET', path:'/quotes/{id}', desc:'Detalle completo con items y totales' },
+    { method:'PUT', path:'/quotes/{id}', desc:'Actualiza borrador (solo en status borrador)' },
+    { method:'PATCH', path:'/quotes/{id}/status', desc:'Cambia status (validación de transición)' },
+    { method:'POST', path:'/quotes/{id}/convert', desc:'Convierte cotización aprobada a venta' },
+  ],
+  actions:[
+    { title:'Bug: conversión a venta falla', body:'Revisar /quotes/{id}/convert: status debe ser "aprobada", crea Sale + SaleItems + movimientos de inventario' },
+    { title:'Añadir vencimiento automático', body:'Crear tarea Celery/cron que ejecute UPDATE quotes SET status="expirada" WHERE vigencia < NOW() AND status != "convertida"' },
+  ]
+},
+{
+  id:'api-sales',
+  label:'api/v1/sales.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\sales.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'💰',
+  desc:'Gestión de ventas, emisión CFDI, registro de pagos parciales/totales y cancelaciones. Es el módulo más complejo: actualiza stock, crédito del cliente y llama a Facturama al emitir CFDI.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/sale.py','backend/app/services/facturama.py','backend/app/models/inventory.py','backend/app/models/client.py'],
+  endpoints:[
+    { method:'GET', path:'/sales', desc:'Lista con filtros de status, cliente, fecha, folio' },
+    { method:'POST', path:'/sales', desc:'Crea venta directa (sin cotización previa)' },
+    { method:'GET', path:'/sales/{id}', desc:'Detalle con items, pagos y CFDI' },
+    { method:'PUT', path:'/sales/{id}', desc:'Actualiza venta pendiente' },
+    { method:'POST', path:'/sales/{id}/cfdi', desc:'Emite CFDI 4.0 vía Facturama. Guarda UUID.' },
+    { method:'POST', path:'/sales/{id}/payments', desc:'Registra pago. Actualiza saldo cliente.' },
+    { method:'POST', path:'/sales/{id}/cancel', desc:'Cancela venta y CFDI. Revierte stock.' },
+  ],
+  actions:[
+    { title:'Bug: CFDI en modo real falla', body:'Revisar services/facturama.py → FACTURAMA_MOCK=false, credenciales en .env, formato CFDI 4.0' },
+    { title:'Bug: stock no se descuenta', body:'Revisar en POST /sales: loop sobre items → InventoryMovement.salida + product.stock_actual -= cantidad' },
+    { title:'Añadir nota de crédito', body:'Nuevo endpoint POST /sales/{id}/credit-note → cancela CFDI y crea NC vía Facturama' },
+  ]
+},
+{
+  id:'api-documents',
+  label:'api/v1/documents.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\documents.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'📄',
+  desc:'Generación y descarga de documentos PDF: cotización, nota de venta, remisión y CFDI PDF (proxy desde Facturama). Usa pdf_generator.py con Jinja2 + WeasyPrint.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/services/pdf_generator.py','backend/app/templates/'],
+  endpoints:[
+    { method:'GET', path:'/documents/quote/{id}/pdf', desc:'Genera y devuelve PDF de cotización' },
+    { method:'GET', path:'/documents/sale/{id}/nota-venta', desc:'PDF Nota de Venta' },
+    { method:'GET', path:'/documents/sale/{id}/remision', desc:'PDF Remisión de entrega' },
+    { method:'GET', path:'/documents/sale/{id}/cfdi-pdf', desc:'Descarga PDF CFDI desde Facturama' },
+  ],
+  actions:[
+    { title:'Modificar diseño del PDF', body:'Editar templates/quote_pdf.html o nota_venta_pdf.html (Jinja2 + CSS)' },
+    { title:'Bug: PDF no genera (WeasyPrint)', body:'Verificar dependencias de sistema: libpango, libcairo. En Docker: apt-get install libpango-1.0-0 libcairo2' },
+  ]
+},
+{
+  id:'api-reports',
+  label:'api/v1/reports.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\reports.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'📈',
+  desc:'KPIs y analytics del negocio. Calcula métricas en tiempo real con queries SQL agregadas: ventas del período, top clientes, top productos, márgenes por categoría y tendencia diaria de ventas.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/sale.py','backend/app/models/product.py'],
+  endpoints:[
+    { method:'GET', path:'/reports/kpis', desc:'Métricas clave: ventas, cotizaciones, clientes, cartera vencida (period=30d)' },
+    { method:'GET', path:'/reports/sales-trend', desc:'Ventas diarias últimos N días para gráfica' },
+    { method:'GET', path:'/reports/top-customers', desc:'Top 10 clientes por monto facturado' },
+    { method:'GET', path:'/reports/top-products', desc:'Top 10 productos por unidades vendidas' },
+    { method:'GET', path:'/reports/margins', desc:'Margen bruto por categoría de producto' },
+  ],
+  actions:[
+    { title:'Añadir KPI nuevo', body:'Agregar query SQL agregada en GET /reports/kpis, añadir campo en respuesta JSON' },
+    { title:'Optimizar query lenta', body:'Añadir índice en sale.fecha_venta y client_id. Revisar explain analyze en PostgreSQL' },
+  ]
+},
+{
+  id:'api-collections',
+  label:'api/v1/collections.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\collections.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'🏦',
+  desc:'Módulo de cartera y cobranza. Reporte de antigüedad de saldos (aging: 0-30, 31-60, 61-90, +90 días), listado de cuentas vencidas y registro de gestiones de cobranza.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/client.py','backend/app/models/sale.py'],
+  endpoints:[
+    { method:'GET', path:'/collections/summary', desc:'Resumen aging de cartera por tramos de días' },
+    { method:'GET', path:'/collections/overdue', desc:'Ventas vencidas con días de atraso' },
+    { method:'POST', path:'/collections/{sale_id}/notes', desc:'Registra nota de gestión de cobranza' },
+  ],
+  actions:[
+    { title:'Ajustar tramos de aging', body:'Modificar los rangos de días en la query de /collections/summary' },
+  ]
+},
+{
+  id:'api-inventory',
+  label:'api/v1/inventory.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\inventory.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'📊',
+  desc:'Stock actual de todos los productos, historial de movimientos, ajustes manuales de inventario y alertas de stock mínimo.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/inventory.py','backend/app/models/product.py'],
+  endpoints:[
+    { method:'GET', path:'/inventory', desc:'Stock actual de todos los productos con alertas de mínimo' },
+    { method:'GET', path:'/inventory/movements', desc:'Historial de movimientos con filtros' },
+    { method:'POST', path:'/inventory/adjust', desc:'Ajuste manual de stock (requiere rol almacen+)' },
+    { method:'GET', path:'/inventory/alerts', desc:'Productos bajo stock mínimo' },
+  ],
+  actions:[
+    { title:'Bug: ajuste no crea movimiento', body:'Revisar POST /inventory/adjust: debe crear InventoryMovement además de actualizar product.stock_actual' },
+  ]
+},
+{
+  id:'api-suppliers',
+  label:'api/v1/suppliers.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\suppliers.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'🏭',
+  desc:'CRUD de proveedores. Gestión de datos fiscales, contacto y tiempo de entrega promedio.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/purchase.py'],
+  endpoints:[
+    { method:'GET', path:'/suppliers', desc:'Lista de proveedores' },
+    { method:'POST', path:'/suppliers', desc:'Crear proveedor' },
+    { method:'PUT', path:'/suppliers/{id}', desc:'Actualizar proveedor' },
+    { method:'DELETE', path:'/suppliers/{id}', desc:'Eliminar proveedor' },
+  ],
+  actions:[]
+},
+{
+  id:'api-purchases',
+  label:'api/v1/purchases.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\purchases.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'🛒',
+  desc:'Órdenes de compra con workflow completo. Creación, envío a proveedor, confirmación, recepción parcial o total. Al recibir mercancía genera automáticamente movimientos de inventario de entrada.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/purchase.py','backend/app/models/inventory.py'],
+  endpoints:[
+    { method:'GET', path:'/purchases', desc:'Lista de OC con filtros' },
+    { method:'POST', path:'/purchases', desc:'Crear orden de compra' },
+    { method:'GET', path:'/purchases/{id}', desc:'Detalle con items y estado de recepción' },
+    { method:'PATCH', path:'/purchases/{id}/status', desc:'Cambiar status de la OC' },
+    { method:'POST', path:'/purchases/{id}/receive', desc:'Registrar recepción (parcial o total) → actualiza stock' },
+  ],
+  actions:[
+    { title:'Bug: recepción no actualiza stock', body:'Revisar POST /purchases/{id}/receive → loop items recibidos → product.stock_actual += qty_recibida + crear InventoryMovement entrada' },
+  ]
+},
+{
+  id:'api-users',
+  label:'api/v1/users.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\api\\v1\\users.py',
+  group:'backend', section:'Backend — API Endpoints',
+  badges:['api'],
+  icon:'👥',
+  desc:'Gestión de usuarios del sistema. Solo gerencia y administracion pueden crear/editar usuarios. Incluye cambio de contraseña y activación/desactivación de cuentas.',
+  type:'Python / FastAPI',
+  role:'Backend API',
+  relatedFiles:['backend/app/models/user.py','backend/app/core/security.py'],
+  endpoints:[
+    { method:'GET', path:'/users', desc:'Lista usuarios (solo gerencia/admin)' },
+    { method:'POST', path:'/users', desc:'Crear usuario con rol' },
+    { method:'PUT', path:'/users/{id}', desc:'Actualizar datos y rol' },
+    { method:'PATCH', path:'/users/{id}/password', desc:'Cambiar contraseña' },
+    { method:'PATCH', path:'/users/{id}/toggle', desc:'Activar/desactivar cuenta' },
+  ],
+  actions:[]
+},
+
+// ── BACKEND SERVICES ──────────────────────────────────────────────────────
+{
+  id:'svc-facturama',
+  label:'services/facturama.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\services\\facturama.py',
+  group:'backend', section:'Backend — Servicios',
+  badges:['service'],
+  icon:'🧾',
+  desc:'Integración con Facturama para emisión de CFDI 4.0. Modo real: llama a API de Facturama (sandbox o producción). Modo mock: genera UUID falso y XML simulado sin llamada externa. Maneja cancelación de CFDI. Construye el JSON CFDI completo con SAT taxonomy.',
+  type:'Python',
+  role:'Servicio / Integración',
+  relatedFiles:['backend/app/api/v1/sales.py','backend/app/core/config.py'],
+  functions:[
+    { name:'emit_cfdi(sale, client, items)', desc:'Construye payload CFDI 4.0 y llama a Facturama API o mock. Retorna {uuid, xml_url, pdf_url}.' },
+    { name:'cancel_cfdi(uuid, motivo)', desc:'Envía solicitud de cancelación a Facturama con UUID y motivo SAT.' },
+    { name:'_build_cfdi_payload(sale, client, items)', desc:'Arma el JSON con Receptor, Emisor, Conceptos (con clave SAT), Impuestos (IVA 16%).' },
+    { name:'_mock_emit(payload)', desc:'Genera UUID v4 aleatorio, crea XML mínimo válido. Útil para desarrollo sin credenciales.' },
+  ],
+  actions:[
+    { title:'Activar modo real', body:'FACTURAMA_MOCK=false en .env + credenciales FACTURAMA_USER y FACTURAMA_PASSWORD' },
+    { title:'Bug: error 400 de Facturama', body:'Revisar _build_cfdi_payload(): clave_prod_serv SAT, clave_unidad, régimen fiscal del emisor en config.py' },
+    { title:'Añadir retención ISR', body:'Agregar nodo Retenciones en _build_cfdi_payload() con tasa y base correspondientes' },
+  ]
+},
+{
+  id:'svc-pdf',
+  label:'services/pdf_generator.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\services\\pdf_generator.py',
+  group:'backend', section:'Backend — Servicios',
+  badges:['service'],
+  icon:'📄',
+  desc:'Generación de PDFs con Jinja2 + WeasyPrint. Carga plantillas HTML, las renderiza con datos del contexto y convierte a PDF binario. Maneja cotizaciones, notas de venta y remisiones.',
+  type:'Python',
+  role:'Servicio',
+  relatedFiles:['backend/app/templates/','backend/app/api/v1/documents.py'],
+  functions:[
+    { name:'generate_quote_pdf(quote, items, client)', desc:'Renderiza quote_pdf.html con datos y convierte a PDF bytes.' },
+    { name:'generate_nota_venta_pdf(sale, items, client)', desc:'Renderiza nota_venta_pdf.html.' },
+    { name:'generate_remision_pdf(sale, items, client)', desc:'Renderiza remision_pdf.html.' },
+    { name:'_render_template(template_name, context)', desc:'Carga plantilla Jinja2, renderiza HTML, convierte con weasyprint.HTML().write_pdf().' },
+  ],
+  actions:[
+    { title:'Modificar logo en PDF', body:'Editar templates/quote_pdf.html → <img src="..."> (usar base64 o ruta absoluta para WeasyPrint)' },
+    { title:'Añadir nueva plantilla', body:'1. Crear template en app/templates/\n2. Añadir función generate_X_pdf() aquí\n3. Añadir endpoint en documents.py' },
+  ]
+},
+{
+  id:'svc-price',
+  label:'services/price_engine.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\services\\price_engine.py',
+  group:'backend', section:'Backend — Servicios',
+  badges:['service'],
+  icon:'💲',
+  desc:'Motor de precios multi-nivel. Selecciona el precio correcto según el tipo de cliente (público_general, contratista, constructora, mayorista) y volumen pedido. Realiza conversión de unidades (pza/kg/ton) con factores configurables por producto.',
+  type:'Python',
+  role:'Servicio',
+  relatedFiles:['backend/app/models/product.py','backend/app/api/v1/quotes.py'],
+  functions:[
+    { name:'get_price(product, client_type, quantity, unit)', desc:'Devuelve precio unitario aplicable según tipo de cliente y volumen.' },
+    { name:'convert_units(quantity, from_unit, to_unit, factor)', desc:'Convierte entre pza, kg, ton usando factor_conversion del producto.' },
+    { name:'calculate_line_total(qty, price, discount)', desc:'Subtotal con descuento porcentual.' },
+  ],
+  actions:[
+    { title:'Añadir descuento adicional', body:'Agregar parámetro descuento_adicional en calculate_line_total(), aplicar antes de IVA' },
+  ]
+},
+{
+  id:'svc-csv',
+  label:'services/csv_importer.py',
+  path:'D:\\CRM_FREELUX\\backend\\app\\services\\csv_importer.py',
+  group:'backend', section:'Backend — Servicios',
+  badges:['service'],
+  icon:'📥',
+  desc:'Importador masivo de productos desde CSV en formato SICAR (sistema de inventarios del sector acero). Parsea columnas, mapea campos al modelo Product, detecta duplicados por clave SKU y crea precios iniciales.',
+  type:'Python',
+  role:'Servicio',
+  relatedFiles:['backend/app/models/product.py','backend/app/api/v1/products.py'],
+  functions:[
+    { name:'import_products_csv(file, db)', desc:'Lee CSV, valida columnas requeridas, inserta/actualiza productos en bulk.' },
+    { name:'parse_row(row)', desc:'Mapea columna CSV → dict con campos del modelo Product.' },
+    { name:'find_or_create_product(clave, data, db)', desc:'Busca por clave SKU, crea si no existe, actualiza si sí.' },
+  ],
+  actions:[
+    { title:'Bug: columna no encontrada', body:'Revisar parse_row() → mapeo de nombres de columna del CSV de SICAR. Puede variar por versión de exportación.' },
+    { title:'Añadir soporte XLSX', body:'Usar openpyxl para leer .xlsx, convertir a lista de dicts con mismo formato que CSV parser' },
+  ]
+},
+
+// ── BACKEND TEMPLATES ─────────────────────────────────────────────────────
+{
+  id:'tpl-quote',
+  label:'templates/quote_pdf.html',
+  path:'D:\\CRM_FREELUX\\backend\\app\\templates\\quote_pdf.html',
+  group:'backend', section:'Backend — Templates PDF',
+  badges:['template'],
+  icon:'🖨️',
+  desc:'Plantilla Jinja2 HTML para PDF de cotización. Incluye encabezado con logo y datos de la empresa, tabla de productos con cantidades/precios/subtotales, condiciones de pago y pie de página. Estilizada para impresión.',
+  type:'HTML / Jinja2',
+  role:'Template',
+  relatedFiles:['backend/app/services/pdf_generator.py'],
+  functions:[
+    { name:'Variables de contexto', desc:'quote, items, client, company_info, fecha_generacion' },
+  ],
+  actions:[
+    { title:'Cambiar colores corporativos', body:'Editar variables CSS en <style> del template: --primary-color, --accent-color' },
+    { title:'Añadir campo en cotización', body:'Agregar {{ quote.nuevo_campo }} en el HTML, asegurar que el context en pdf_generator.py lo incluya' },
+  ]
+},
+{
+  id:'tpl-nota',
+  label:'templates/nota_venta_pdf.html',
+  path:'D:\\CRM_FREELUX\\backend\\app\\templates\\nota_venta_pdf.html',
+  group:'backend', section:'Backend — Templates PDF',
+  badges:['template'],
+  icon:'🖨️',
+  desc:'Plantilla para Nota de Venta. Similar a cotización pero incluye folio de venta, método de pago, estado de cuenta del cliente y sello de empresa.',
+  type:'HTML / Jinja2',
+  role:'Template',
+  relatedFiles:['backend/app/services/pdf_generator.py'],
+  functions:[{ name:'Variables de contexto', desc:'sale, items, client, payments, company_info' }],
+  actions:[]
+},
+{
+  id:'tpl-remision',
+  label:'templates/remision_pdf.html',
+  path:'D:\\CRM_FREELUX\\backend\\app\\templates\\remision_pdf.html',
+  group:'backend', section:'Backend — Templates PDF',
+  badges:['template'],
+  icon:'🖨️',
+  desc:'Plantilla para Remisión de entrega. Documento de control de almacén con cantidades a entregar, unidades y espacio para firma de recepción.',
+  type:'HTML / Jinja2',
+  role:'Template',
+  relatedFiles:['backend/app/services/pdf_generator.py'],
+  functions:[{ name:'Variables de contexto', desc:'sale, items, client, almacen_info, fecha_entrega' }],
+  actions:[]
+},
+
+// ── BACKEND MIGRATIONS ────────────────────────────────────────────────────
+{
+  id:'migration-001',
+  label:'001_initial_schema.py',
+  path:'D:\\CRM_FREELUX\\backend\\alembic\\versions\\001_initial_schema.py',
+  group:'backend', section:'Backend — Migraciones',
+  badges:['migration'],
+  icon:'🗃️',
+  desc:'Migración inicial. Crea todas las tablas core: users, products, product_prices, product_price_history, clients, quotes, quote_items, sales, sale_items, payments.',
+  type:'Python / Alembic',
+  role:'Base de datos',
+  relatedFiles:['backend/alembic/env.py'],
+  functions:[
+    { name:'upgrade()', desc:'Crea todas las tablas con FK, índices y constraints.' },
+    { name:'downgrade()', desc:'Elimina todas las tablas en orden inverso.' },
+  ],
+  actions:[
+    { title:'Ejecutar migración', body:'alembic upgrade head\n# o dentro de Docker:\ndocker compose exec backend alembic upgrade head' },
+    { title:'Revertir migración', body:'alembic downgrade -1' },
+  ]
+},
+{
+  id:'migration-002',
+  label:'002_inventory_movements.py',
+  path:'D:\\CRM_FREELUX\\backend\\alembic\\versions\\002_inventory_movements.py',
+  group:'backend', section:'Backend — Migraciones',
+  badges:['migration'],
+  icon:'🗃️',
+  desc:'Agrega tabla inventory_movements para trazabilidad completa de stock. Incluye FK a products, users y referencia opcional a sales/purchases.',
+  type:'Python / Alembic',
+  role:'Base de datos',
+  relatedFiles:['backend/app/models/inventory.py'],
+  functions:[
+    { name:'upgrade()', desc:'Crea tabla inventory_movements con índices en product_id y created_at.' },
+  ],
+  actions:[]
+},
+{
+  id:'migration-003',
+  label:'003_credit_collections.py',
+  path:'D:\\CRM_FREELUX\\backend\\alembic\\versions\\003_credit_collections.py',
+  group:'backend', section:'Backend — Migraciones',
+  badges:['migration'],
+  icon:'🗃️',
+  desc:'Agrega campos de crédito a clients (limite_credito, saldo_pendiente, dias_credito) y tabla collection_notes para gestión de cobranza.',
+  type:'Python / Alembic',
+  role:'Base de datos',
+  relatedFiles:['backend/app/models/client.py','backend/app/api/v1/collections.py'],
+  functions:[
+    { name:'upgrade()', desc:'ALTER TABLE clients ADD COLUMN + CREATE TABLE collection_notes.' },
+  ],
+  actions:[]
+},
+
+// ── FRONTEND CORE ─────────────────────────────────────────────────────────
+{
+  id:'fe-layout',
+  label:'app/layout.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\layout.tsx',
+  group:'frontend', section:'Frontend — Core',
+  badges:['config'],
+  icon:'🏗️',
+  desc:'Layout raíz de Next.js 15. Define metadatos del sitio (title, description), importa globals.css y envuelve toda la app en el componente Providers.',
+  type:'TypeScript / Next.js',
+  role:'Frontend Core',
+  relatedFiles:['frontend/app/providers.tsx','frontend/app/globals.css'],
+  functions:[
+    { name:'metadata', desc:'Title "CRM FreeLux", description, viewport configurados aquí.' },
+    { name:'RootLayout', desc:'Wrapper con <html lang="es"> y <body>. Incluye <Providers>.' },
+  ],
+  actions:[
+    { title:'Cambiar título del sitio', body:'Editar export const metadata = { title: "..." } en layout.tsx' },
+  ]
+},
+{
+  id:'fe-providers',
+  label:'app/providers.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\providers.tsx',
+  group:'frontend', section:'Frontend — Core',
+  badges:['config'],
+  icon:'⚙️',
+  desc:'Configura todos los providers globales de React: QueryClientProvider (TanStack Query v5 con staleTime 30s y retry 1), y Toaster (react-hot-toast) para notificaciones globales.',
+  type:'TypeScript / React',
+  role:'Frontend Core',
+  relatedFiles:['frontend/lib/api.ts'],
+  functions:[
+    { name:'QueryClient', desc:'staleTime: 30000, retry: 1, refetchOnWindowFocus: false.' },
+    { name:'Providers', desc:'Envuelve children con QueryClientProvider + Toaster.' },
+  ],
+  actions:[
+    { title:'Cambiar staleTime global', body:'queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: X } } })' },
+    { title:'Añadir provider global', body:'Importar y envolver dentro de <Providers> en providers.tsx' },
+  ]
+},
+{
+  id:'fe-globals',
+  label:'app/globals.css',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\globals.css',
+  group:'frontend', section:'Frontend — Core',
+  badges:['config'],
+  icon:'🎨',
+  desc:'CSS global. Importa Tailwind base/components/utilities. Define variables CSS personalizadas para los colores de marca FreeLux (naranja #f97316) y estilos base del cuerpo.',
+  type:'CSS',
+  role:'Frontend Core',
+  relatedFiles:['frontend/tailwind.config.ts'],
+  functions:[],
+  actions:[
+    { title:'Cambiar color primario', body:'Editar --color-primary en :root. Sincronizar con tailwind.config.ts → theme.colors.orange' },
+  ]
+},
+{
+  id:'fe-api',
+  label:'lib/api.ts',
+  path:'D:\\CRM_FREELUX\\frontend\\lib\\api.ts',
+  group:'frontend', section:'Frontend — Core',
+  badges:['config'],
+  icon:'🔌',
+  desc:'Instancia Axios configurada con baseURL del backend, interceptores de request (añade Authorization: Bearer token) e interceptor de response que redirige al login en 401 y auto-refresca tokens expirados.',
+  type:'TypeScript',
+  role:'Frontend Core',
+  relatedFiles:['frontend/lib/auth-store.ts','frontend/app/providers.tsx'],
+  functions:[
+    { name:'api (Axios instance)', desc:'baseURL: NEXT_PUBLIC_API_URL. Timeout: 30s.' },
+    { name:'request interceptor', desc:'Lee token de auth-store.ts, añade header Authorization.' },
+    { name:'response interceptor', desc:'En 401: intenta refresh_token → guarda nuevo access token → reintenta request original. Si falla: logout + redirect /login.' },
+  ],
+  actions:[
+    { title:'Bug: refresh loop infinito', body:'Revisar response interceptor: asegurarse de que el retry no agrega Authorization con token expirado. Usar flag isRetry.' },
+    { title:'Cambiar URL del backend', body:'Editar NEXT_PUBLIC_API_URL en frontend/.env.local' },
+  ]
+},
+{
+  id:'fe-auth-store',
+  label:'lib/auth-store.ts',
+  path:'D:\\CRM_FREELUX\\frontend\\lib\\auth-store.ts',
+  group:'frontend', section:'Frontend — Core',
+  badges:['config'],
+  icon:'🔐',
+  desc:'Store Zustand para estado de autenticación. Persiste access_token, refresh_token, user (con rol) en localStorage. Exporta acciones: setAuth, clearAuth, getToken.',
+  type:'TypeScript / Zustand',
+  role:'Frontend Core',
+  relatedFiles:['frontend/lib/api.ts','frontend/app/(auth)/login/page.tsx'],
+  functions:[
+    { name:'useAuthStore', desc:'Zustand store con persist middleware → localStorage key: "freelux-auth".' },
+    { name:'setAuth(user, access, refresh)', desc:'Guarda tokens y datos del usuario.' },
+    { name:'clearAuth()', desc:'Limpia store y localStorage. Usado en logout.' },
+    { name:'getToken()', desc:'Devuelve access_token actual.' },
+  ],
+  actions:[
+    { title:'Agregar campo al user store', body:'Añadir campo en interface AuthState, actualizar setAuth() y el login endpoint response' },
+  ]
+},
+{
+  id:'fe-utils',
+  label:'lib/utils.ts',
+  path:'D:\\CRM_FREELUX\\frontend\\lib\\utils.ts',
+  group:'frontend', section:'Frontend — Core',
+  badges:['config'],
+  icon:'🛠️',
+  desc:'Funciones utilitarias compartidas: formateo de moneda MXN (formatCurrency), fechas en español (formatDate), cálculo de porcentajes, clases CSS condicionales (cn) y truncado de texto.',
+  type:'TypeScript',
+  role:'Frontend Core',
+  relatedFiles:[],
+  functions:[
+    { name:'formatCurrency(amount)', desc:'Intl.NumberFormat en-MX con estilo currency MXN.' },
+    { name:'formatDate(date, format?)', desc:'Formatea fecha en español (dd/mm/yyyy o relativa).' },
+    { name:'cn(...classes)', desc:'Combina clases CSS (equivalente a clsx/twMerge).' },
+    { name:'calculatePercentage(value, total)', desc:'Devuelve porcentaje con 2 decimales.' },
+  ],
+  actions:[
+    { title:'Añadir utilidad', body:'Exportar función desde utils.ts e importar donde se necesite: import { miUtil } from "@/lib/utils"' },
+  ]
+},
+
+// ── FRONTEND PAGES ────────────────────────────────────────────────────────
+{
+  id:'page-login',
+  label:'(auth)/login/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(auth)\\login\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'🚪',
+  desc:'Página de login. Formulario con React Hook Form + Zod (email, password). Al hacer POST /auth/login guarda tokens en auth-store y redirige al dashboard según el rol del usuario.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['frontend/lib/auth-store.ts','frontend/lib/api.ts'],
+  functions:[
+    { name:'LoginPage', desc:'Componente cliente. Usa useRouter para redirect post-login.' },
+    { name:'onSubmit(data)', desc:'Llama api.post("/auth/login"), guarda en authStore.setAuth(), redirige.' },
+  ],
+  actions:[
+    { title:'Bug: login no redirige', body:'Revisar onSubmit: response.data debe contener access_token, refresh_token, user. Verificar setAuth() y router.push("/dashboard")' },
+  ]
+},
+{
+  id:'page-dashboard',
+  label:'dashboard/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'📊',
+  desc:'Dashboard principal con KPIs. Usa useQuery para GET /reports/kpis. Muestra tarjetas de ventas del mes, cotizaciones activas, clientes nuevos, cartera vencida. Incluye gráfica de tendencia de ventas (Recharts LineChart) y tabla de top productos.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['backend/app/api/v1/reports.py'],
+  functions:[
+    { name:'DashboardPage', desc:'Server component que suspende en carga de KPIs.' },
+    { name:'KpiCard', desc:'Tarjeta con valor, label, variación vs período anterior y ícono.' },
+    { name:'SalesTrendChart', desc:'Recharts LineChart con datos de /reports/sales-trend.' },
+  ],
+  actions:[
+    { title:'Añadir KPI nuevo', body:'1. Endpoint en backend reports.py\n2. useQuery en dashboard/page.tsx\n3. Nuevo <KpiCard> en el grid' },
+  ]
+},
+{
+  id:'page-quotes',
+  label:'dashboard/quotes/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\quotes\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'📋',
+  desc:'Lista de cotizaciones con búsqueda en tiempo real (debounce 300ms), filtro por status, paginación y acciones rápidas (cambiar status, descargar PDF, convertir a venta). Tabla responsive con estado visual por status.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['frontend/app/(dashboard)/dashboard/quotes/new/page.tsx','backend/app/api/v1/quotes.py'],
+  functions:[
+    { name:'QuotesPage', desc:'useQuery con params de búsqueda y paginación.' },
+    { name:'StatusBadge', desc:'Chip de color por status (borrador=gris, enviada=azul, aprobada=verde, etc.).' },
+    { name:'handleConvert(id)', desc:'POST /quotes/{id}/convert → invalida queries y muestra toast.' },
+  ],
+  actions:[
+    { title:'Añadir columna en tabla', body:'Añadir <th> y <td> en QuotesTable. Si el dato no viene del API, actualizar endpoint GET /quotes.' },
+  ]
+},
+{
+  id:'page-quotes-new',
+  label:'dashboard/quotes/new/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\quotes\\new\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'✏️',
+  desc:'Constructor de cotizaciones. Formulario multi-paso: selección de cliente (búsqueda async), tabla de líneas de productos con búsqueda y selección, cálculo en tiempo real de subtotales/IVA/total, condiciones de pago y vigencia.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['backend/app/api/v1/quotes.py','backend/app/services/price_engine.py'],
+  functions:[
+    { name:'NewQuotePage', desc:'useFieldArray para manejo dinámico de líneas de producto.' },
+    { name:'ProductSearch', desc:'Combobox con debounce que llama GET /products?search=X.' },
+    { name:'LineItemRow', desc:'Calcula subtotal en tiempo real al cambiar cantidad o precio.' },
+    { name:'onSubmit()', desc:'POST /quotes con items. Redirige a /quotes/{id} al crear.' },
+  ],
+  actions:[
+    { title:'Bug: precio no carga al seleccionar producto', body:'Revisar ProductSearch onSelect: debe setear precio según tipo_precio del cliente seleccionado' },
+    { title:'Añadir campo de descuento por línea', body:'Añadir input descuento (%) en LineItemRow, calcular en precio_unitario * (1 - descuento/100)' },
+  ]
+},
+{
+  id:'page-sales',
+  label:'dashboard/sales/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\sales\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'💰',
+  desc:'Lista de ventas con filtros, búsqueda y estado de CFDI. Permite acceder al detalle, registrar pagos y descargar documentos.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['frontend/app/(dashboard)/dashboard/sales/[id]/page.tsx','backend/app/api/v1/sales.py'],
+  functions:[
+    { name:'SalesPage', desc:'Lista con columnas: folio, cliente, total, status pago, status CFDI, fecha.' },
+  ],
+  actions:[]
+},
+{
+  id:'page-sale-detail',
+  label:'dashboard/sales/[id]/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\sales\\[id]\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'🔍',
+  desc:'Detalle de venta. Muestra items, historial de pagos, botón de emitir CFDI, descarga de documentos (Nota de Venta, Remisión, CFDI PDF) y formulario de registro de nuevo pago.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['backend/app/api/v1/sales.py','backend/app/api/v1/documents.py'],
+  functions:[
+    { name:'SaleDetailPage', desc:'useQuery GET /sales/{id}. Revalida tras registrar pago.' },
+    { name:'EmitCfdiButton', desc:'POST /sales/{id}/cfdi → muestra UUID resultante.' },
+    { name:'PaymentForm', desc:'Modal con monto, método y referencia → POST /sales/{id}/payments.' },
+    { name:'DownloadButton', desc:'GET /documents/sale/{id}/nota-venta → blob download.' },
+  ],
+  actions:[
+    { title:'Bug: botón CFDI no aparece', body:'Verificar condición: sale.cfdi_uuid === null && sale.status !== "cancelada". Revisar tipos de la respuesta API.' },
+  ]
+},
+{
+  id:'page-clients',
+  label:'dashboard/clients/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\clients\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'🏢',
+  desc:'Lista y gestión de clientes. Tabla con nombre, RFC, vendedor asignado, crédito disponible y saldo pendiente. Modal de creación/edición con todos los datos fiscales y de crédito.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['backend/app/api/v1/clients.py'],
+  functions:[
+    { name:'ClientsPage', desc:'useQuery GET /clients. useMutation para POST/PUT.' },
+    { name:'ClientFormModal', desc:'React Hook Form con validación Zod. Campos: nombre, RFC, régimen fiscal, uso CFDI, crédito.' },
+  ],
+  actions:[]
+},
+{
+  id:'page-products',
+  label:'dashboard/products/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\products\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'📦',
+  desc:'Catálogo de productos con búsqueda, filtro por categoría/departamento, tabla con precios y stock. Incluye modal de edición de precios multi-nivel y botón de importación CSV.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['backend/app/api/v1/products.py'],
+  functions:[
+    { name:'ProductsPage', desc:'useQuery GET /products con search, categoria params.' },
+    { name:'PriceEditor', desc:'Grid de 4 precios (por tipo de cliente) editable inline.' },
+    { name:'CsvImportButton', desc:'File input → FormData → POST /products/import.' },
+  ],
+  actions:[]
+},
+{
+  id:'page-inventory',
+  label:'dashboard/inventory/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\inventory\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'📊',
+  desc:'Vista de inventario. Stock actual por producto con alertas visuales (rojo si bajo mínimo). Historial de movimientos con tipo, cantidad antes/después y referencia de origen.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['backend/app/api/v1/inventory.py'],
+  functions:[
+    { name:'InventoryPage', desc:'Tabs: Existencias | Movimientos | Alertas.' },
+    { name:'AdjustForm', desc:'Modal para ajuste manual: producto, tipo, cantidad, motivo.' },
+  ],
+  actions:[]
+},
+{
+  id:'page-purchases',
+  label:'dashboard/purchases/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\purchases\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'🛒',
+  desc:'Gestión de compras. Lista de órdenes de compra con status, formulario de nueva OC con selección de proveedor y productos, y flujo de recepción parcial/total.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['backend/app/api/v1/purchases.py','backend/app/api/v1/suppliers.py'],
+  functions:[
+    { name:'PurchasesPage', desc:'Tabs: Órdenes de Compra | Proveedores.' },
+    { name:'ReceiveModal', desc:'Por cada item de la OC: input de cantidad recibida → POST /purchases/{id}/receive.' },
+  ],
+  actions:[]
+},
+{
+  id:'page-collections',
+  label:'dashboard/collections/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\collections\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'🏦',
+  desc:'Módulo de cobranza. Reporte de antigüedad de saldos con barras visuales por tramo (0-30, 31-60, 61-90, +90 días). Lista de cuentas vencidas con botón de registrar gestión de cobro.',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['backend/app/api/v1/collections.py'],
+  functions:[
+    { name:'CollectionsPage', desc:'useQuery GET /collections/summary y /collections/overdue.' },
+    { name:'AgingChart', desc:'Recharts BarChart con tramos de antigüedad.' },
+  ],
+  actions:[]
+},
+{
+  id:'page-reports',
+  label:'dashboard/reports/page.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\dashboard\\reports\\page.tsx',
+  group:'frontend', section:'Frontend — Páginas',
+  badges:['page'],
+  icon:'📈',
+  desc:'Analytics avanzado. Gráfica de tendencia de ventas (LineChart), top 10 clientes (BarChart horizontal), top 10 productos (BarChart) y márgenes por categoría (PieChart). Selector de período (7d, 30d, 90d, 1año).',
+  type:'TypeScript / React',
+  role:'Frontend Page',
+  relatedFiles:['backend/app/api/v1/reports.py'],
+  functions:[
+    { name:'ReportsPage', desc:'4 useQuery independientes para cada gráfica. Estado local: period selector.' },
+  ],
+  actions:[
+    { title:'Añadir exportar a Excel', body:'Instalar xlsx. Botón exportar → convierte data de useQuery a workbook y descarga .xlsx' },
+  ]
+},
+{
+  id:'page-dashboard-layout',
+  label:'(dashboard)/layout.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\app\\(dashboard)\\layout.tsx',
+  group:'frontend', section:'Frontend — Core',
+  badges:['config'],
+  icon:'🏗️',
+  desc:'Layout del dashboard autenticado. Verifica token en localStorage, redirige a /login si no existe. Renderiza sidebar de navegación con links a todos los módulos, header con usuario y botón logout.',
+  type:'TypeScript / React',
+  role:'Frontend Core',
+  relatedFiles:['frontend/lib/auth-store.ts'],
+  functions:[
+    { name:'DashboardLayout', desc:'Componente cliente. useEffect verifica auth. Sidebar con NavLinks por rol.' },
+    { name:'NavLink', desc:'Resalta link activo con usePathname. Oculta links por rol del usuario.' },
+    { name:'handleLogout()', desc:'clearAuth() + router.push("/login").' },
+  ],
+  actions:[
+    { title:'Añadir módulo al sidebar', body:'Añadir objeto { href, label, icon, roles } en el array de navItems en layout.tsx' },
+    { title:'Bug: redirige a login aunque hay token', body:'Revisar useEffect: token de authStore.getToken() debe ser truthy. Revisar hidratación de Zustand persist.' },
+  ]
+},
+{
+  id:'fe-logo',
+  label:'components/FreeluxLogo.tsx',
+  path:'D:\\CRM_FREELUX\\frontend\\components\\FreeluxLogo.tsx',
+  group:'frontend', section:'Frontend — Componentes',
+  badges:['config'],
+  icon:'🎨',
+  desc:'Componente SVG del logo de FreeLux. Acepta props size y className. Usado en sidebar, login y PDFs (como imagen exportada).',
+  type:'TypeScript / React',
+  role:'Componente UI',
+  relatedFiles:[],
+  functions:[
+    { name:'FreeluxLogo({ size, className })', desc:'SVG inline del logo con colores de marca. size: sm|md|lg.' },
+  ],
+  actions:[]
+},
+{
+  id:'fe-tailwind',
+  label:'tailwind.config.ts',
+  path:'D:\\CRM_FREELUX\\frontend\\tailwind.config.ts',
+  group:'frontend', section:'Frontend — Config',
+  badges:['config'],
+  icon:'🎨',
+  desc:'Configuración de Tailwind CSS. Extiende la paleta con colores de marca FreeLux (orange-500 = #f97316 como color primario). Define content paths para tree-shaking correcto.',
+  type:'TypeScript',
+  role:'Frontend Config',
+  relatedFiles:['frontend/app/globals.css'],
+  functions:[],
+  actions:[
+    { title:'Cambiar color de marca', body:'theme.extend.colors.primary = "#nuevo-color" en tailwind.config.ts y actualizar globals.css' },
+  ]
+},
+{
+  id:'fe-next-config',
+  label:'next.config.ts',
+  path:'D:\\CRM_FREELUX\\frontend\\next.config.ts',
+  group:'frontend', section:'Frontend — Config',
+  badges:['config'],
+  icon:'⚙️',
+  desc:'Configuración de Next.js 15. Habilita standalone output para Docker. Define rewrites para proxy de la API (redirige /api/* al backend FastAPI). Desactiva telemetría.',
+  type:'TypeScript',
+  role:'Frontend Config',
+  relatedFiles:['frontend/app/api/[...path]/route.ts'],
+  functions:[
+    { name:'output: "standalone"', desc:'Genera bundle minimal para Docker sin node_modules.' },
+    { name:'rewrites()', desc:'Proxy: /api/* → NEXT_PUBLIC_API_URL/*' },
+  ],
+  actions:[
+    { title:'Añadir dominio permitido para imágenes', body:'images: { domains: ["mi-cdn.com"] } en next.config.ts' },
+  ]
+},
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let currentFile = null;
+let activeFilter = 'all';
+let currentPath = '';
+
+// ─── RENDER SIDEBAR ──────────────────────────────────────────────────────────
+
+function getFilteredFiles() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  return FILES.filter(f => {
+    const matchFilter = activeFilter === 'all' || f.group === activeFilter;
+    const matchSearch = !q || f.label.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q) || f.section.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+}
+
+function buildSidebar() {
+  const files = getFilteredFiles();
+  const tree = document.getElementById('file-tree');
+
+  if (!files.length) {
+    tree.innerHTML = '<div class="no-results">Sin resultados</div>';
+    return;
+  }
+
+  // Group by section
+  const groups = {};
+  files.forEach(f => {
+    const g = f.group;
+    if (!groups[g]) groups[g] = {};
+    if (!groups[g][f.section]) groups[g][f.section] = [];
+    groups[g][f.section].push(f);
+  });
+
+  const groupLabels = { backend: '🔧 Backend', frontend: '🖥️ Frontend', config: '⚙️ Config / Infra' };
+  let html = '';
+
+  Object.entries(groups).forEach(([gKey, sections]) => {
+    const gId = 'g-' + gKey;
+    html += `<div class="tree-group">
+      <div class="tree-group-header open" onclick="toggleGroup('${gId}')">
+        <span class="chevron">▶</span>${groupLabels[gKey] || gKey}
+      </div>
+      <div class="tree-group-body open" id="${gId}">`;
+
+    Object.entries(sections).forEach(([sec, items]) => {
+      html += `<div class="tree-section">
+        <div class="tree-section-label">${sec}</div>`;
+      items.forEach(f => {
+        const badgeHtml = f.badges.map(b => `<span class="badge badge-${b}">${b}</span>`).join('');
+        html += `<div class="file-item ${currentFile?.id === f.id ? 'active' : ''}" onclick="showFile('${f.id}')" id="item-${f.id}">
+          <span>${f.icon}</span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.label}</span>
+          ${badgeHtml}
+        </div>`;
+      });
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  tree.innerHTML = html;
+}
+
+function toggleGroup(id) {
+  const body = document.getElementById(id);
+  const header = body.previousElementSibling;
+  body.classList.toggle('open');
+  header.classList.toggle('open');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildSidebar();
+}
+
+function filterFiles() { buildSidebar(); }
+
+// ─── SHOW FILE ────────────────────────────────────────────────────────────────
+
+function showFile(id) {
+  const f = FILES.find(x => x.id === id);
+  if (!f) return;
+  currentFile = f;
+  currentPath = f.path;
+
+  // Update sidebar active
+  document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('item-' + id);
+  if (el) el.classList.add('active');
+
+  // Breadcrumb
+  document.getElementById('breadcrumb').innerHTML = `🏠 <span>${f.section}</span> › <span>${f.label}</span>`;
+  document.getElementById('copy-path-btn').style.display = 'flex';
+
+  // Content
+  document.getElementById('welcome').style.display = 'none';
+  const detail = document.getElementById('file-detail');
+  detail.style.display = 'block';
+
+  const badgeHtml = f.badges.map(b => `<span class="badge badge-${b}" style="font-size:11px;padding:2px 8px;border-radius:10px">${b.toUpperCase()}</span>`).join(' ');
+
+  let html = `<div class="file-header">
+    <h2>${f.icon} ${f.label} ${badgeHtml}</h2>
+    <div class="file-path">${f.path}</div>
+    <div class="desc">${f.desc}</div>
+    <div class="meta-row">
+      <span class="meta-item">📁 <strong>Tipo:</strong> ${f.type}</span>
+      <span class="meta-item">🎯 <strong>Rol:</strong> ${f.role}</span>
+    </div>
+  </div>`;
+
+  // Functions/Exports
+  if (f.functions && f.functions.length) {
+    html += `<div class="section-card">
+      <h3>🔧 Funciones / Clases Principales</h3>
+      <div class="section-card-body">
+        <ul class="func-list">`;
+    f.functions.forEach(fn => {
+      html += `<li class="func-item">
+        <span class="func-name">${fn.name}</span>
+        <span class="func-desc">${fn.desc}</span>
+      </li>`;
+    });
+    html += '</ul></div></div>';
+  }
+
+  // Endpoints
+  if (f.endpoints && f.endpoints.length) {
+    html += `<div class="section-card">
+      <h3>🌐 Endpoints API</h3>
+      <div class="section-card-body">`;
+    f.endpoints.forEach(ep => {
+      html += `<div class="endpoint-item">
+        <span class="method ${ep.method}">${ep.method}</span>
+        <span class="endpoint-path">${ep.path}</span>
+        <span class="endpoint-desc">${ep.desc}</span>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // Related files
+  if (f.relatedFiles && f.relatedFiles.length) {
+    html += `<div class="section-card">
+      <h3>🔗 Archivos Relacionados</h3>
+      <div class="section-card-body" style="display:flex;flex-wrap:wrap;gap:6px">`;
+    f.relatedFiles.forEach(r => {
+      const rel = FILES.find(x => x.path.endsWith(r.replace(/\//g,'\\')) || x.label === r.split('/').pop());
+      if (rel) {
+        html += `<span class="dep-tag" style="cursor:pointer;color:var(--orange)" onclick="showFile('${rel.id}')">${rel.icon} ${r}</span>`;
+      } else {
+        html += `<span class="dep-tag">${r}</span>`;
+      }
+    });
+    html += '</div></div>';
+  }
+
+  // Actions / Modificaciones
+  if (f.actions && f.actions.length) {
+    html += `<div class="section-card">
+      <h3>⚡ Guía de Modificaciones y Bugs Comunes</h3>
+      <div class="section-card-body">
+        <div class="action-grid">`;
+    f.actions.forEach(a => {
+      html += `<div class="action-card">
+        <h4>${a.title}</h4>
+        <p>${a.body.replace(/\n/g,'<br>').replace(/`([^`]+)`/g,'<code>$1</code>')}</p>
+      </div>`;
+    });
+    html += '</div></div></div>';
+  }
+
+  detail.innerHTML = html;
+  detail.scrollTop = 0;
+}
+
+// ─── COPY PATH ────────────────────────────────────────────────────────────────
+function copyPath() {
+  if (!currentPath) return;
+  navigator.clipboard.writeText(currentPath).then(() => {
+    const btn = document.getElementById('copy-path-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copiado';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+// ─── WELCOME SCREEN ───────────────────────────────────────────────────────────
+function showWelcome() {
+  const backendCount = FILES.filter(f => f.group === 'backend').length;
+  const frontendCount = FILES.filter(f => f.group === 'frontend').length;
+  const configCount = FILES.filter(f => f.group === 'config').length;
+  const apiCount = FILES.filter(f => f.badges.includes('api')).length;
+
+  document.getElementById('welcome').style.display = 'block';
+  document.getElementById('file-detail').style.display = 'none';
+  document.getElementById('copy-path-btn').style.display = 'none';
+  document.getElementById('breadcrumb').innerHTML = '🏠 <span>Manual CRM FreeLux</span>';
+
+  document.getElementById('welcome').innerHTML = `
+    <div style="max-width:800px;margin:0 auto">
+      <div style="margin-bottom:28px">
+        <h2 style="font-size:22px;font-weight:700;color:var(--orange);margin-bottom:6px">📦 CRM FreeLux — Manual Interactivo</h2>
+        <p style="color:var(--text2);font-size:13px;line-height:1.6">Sistema CRM comercial para <strong style="color:var(--text3)">Aceros y Perfiles FreeLux S.A. de C.V.</strong> — Gestión completa del ciclo de ventas: cotizaciones, ventas, facturación CFDI 4.0, inventario, compras, cobranza y reportes.</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="num">${FILES.length}</div><div class="lbl">Archivos documentados</div></div>
+        <div class="stat-card"><div class="num">${backendCount}</div><div class="lbl">Archivos Backend</div></div>
+        <div class="stat-card"><div class="num">${frontendCount}</div><div class="lbl">Archivos Frontend</div></div>
+        <div class="stat-card"><div class="num">${apiCount}</div><div class="lbl">Módulos API</div></div>
+        <div class="stat-card"><div class="num">${configCount}</div><div class="lbl">Config / Infra</div></div>
+      </div>
+
+      <div class="section-card" style="margin-bottom:16px">
+        <h3>🛠️ Stack Tecnológico</h3>
+        <div class="section-card-body">
+          <div style="margin-bottom:10px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600">BACKEND</div>
+            <div class="tech-pills">
+              ${[['FastAPI 0.115','#1d4ed8'],['Python 3.12','#1d6e36'],['SQLAlchemy 2 async','#5b21b6'],['PostgreSQL 16','#1e3a5f'],['Redis 7','#7f1d1d'],['Pydantic v2','#065f46'],['Alembic','#374151'],['WeasyPrint','#451a03'],['Facturama CFDI 4.0','#78350f']].map(([t,c])=>`<span class="tech-pill" style="border-color:${c};color:#fff;background:${c}40">${t}</span>`).join('')}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600">FRONTEND</div>
+            <div class="tech-pills">
+              ${[['Next.js 15','#0f172a'],['React 19','#1d4ed8'],['TypeScript 5.7','#1e3a5f'],['Tailwind CSS v3','#065f46'],['TanStack Query v5','#5b21b6'],['Zustand v5','#374151'],['React Hook Form','#78350f'],['Zod v3','#7f1d1d'],['Recharts','#1d6e36']].map(([t,c])=>`<span class="tech-pill" style="border-color:${c};color:#fff;background:${c}40">${t}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card" style="margin-bottom:16px">
+        <h3>🗺️ Módulos del Sistema</h3>
+        <div class="section-card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+            ${[
+              {icon:'🔑',name:'Autenticación JWT',files:['api-auth','backend-security','page-login']},
+              {icon:'📋',name:'Cotizaciones',files:['api-quotes','page-quotes','page-quotes-new','model-quote']},
+              {icon:'💰',name:'Ventas & CFDI',files:['api-sales','page-sales','page-sale-detail','svc-facturama']},
+              {icon:'🏢',name:'Clientes & CRM',files:['api-clients','page-clients','model-client']},
+              {icon:'📦',name:'Catálogo de Productos',files:['api-products','page-products','model-product','svc-price','svc-csv']},
+              {icon:'🛒',name:'Compras & Proveedores',files:['api-purchases','api-suppliers','page-purchases','model-purchase']},
+              {icon:'📊',name:'Inventario',files:['api-inventory','page-inventory','model-inventory']},
+              {icon:'🏦',name:'Cobranza & Cartera',files:['api-collections','page-collections']},
+              {icon:'📈',name:'Reportes & KPIs',files:['api-reports','page-reports']},
+              {icon:'📄',name:'Documentos PDF',files:['api-documents','svc-pdf','tpl-quote','tpl-nota','tpl-remision']},
+            ].map(m=>`<div class="action-card" style="cursor:default">
+              <h4>${m.icon} ${m.name}</h4>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+                ${m.files.map(fid=>{const f=FILES.find(x=>x.id===fid);return f?`<span style="font-size:10px;padding:2px 6px;background:var(--bg2);border-radius:4px;cursor:pointer;color:var(--orange)" onclick="showFile('${fid}')">${f.label}</span>`:''}).join('')}
+              </div>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box">💡 <strong>Cómo usar este manual:</strong> Selecciona un archivo en el panel izquierdo para ver su funcionalidad, endpoints, relaciones y guías de modificación. Usa la búsqueda para encontrar archivos por nombre o función. Haz clic en "Archivos Relacionados" para navegar entre dependencias.</div>
+    </div>
+  `;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildSidebar();
+showWelcome();
+</script>
+</body>
+</html>
