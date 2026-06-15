@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { Search, Plus, Users, ChevronLeft, ChevronRight, CreditCard } from "lucide-react";
-import { useAuthStore } from "@/lib/auth-store";
 import Link from "next/link";
 
 interface Client {
@@ -16,114 +15,204 @@ interface Client {
 
 const TIPO_LABELS: Record<string, string> = {
   publico_general: "Público Gral.",
-  contratista: "Contratista",
-  constructora: "Constructora",
-  mayorista: "Mayorista",
+  contratista:     "Contratista",
+  constructora:    "Constructora",
+  mayorista:       "Mayorista",
 };
 
-const TIPO_COLORS: Record<string, string> = {
-  publico_general: "bg-gray-100 text-gray-700",
-  contratista: "bg-blue-100 text-blue-700",
-  constructora: "bg-purple-100 text-purple-700",
-  mayorista: "bg-amber-100 text-amber-700",
+const TIPO_COLORS: Record<string, { bg: string; text: string }> = {
+  publico_general: { bg: "#f3f4f6", text: "#374151" },
+  contratista:     { bg: "#dbeafe", text: "#1d4ed8" },
+  constructora:    { bg: "#f3e8ff", text: "#7e22ce" },
+  mayorista:       { bg: "#fef3c7", text: "#92400e" },
 };
+
+const FILTERS = ["", "publico_general", "contratista", "constructora", "mayorista"] as const;
 
 export default function ClientsPage() {
-  const { user } = useAuthStore();
-  const [q, setQ] = useState("");
+  const [q, setQ]       = useState("");
   const [page, setPage] = useState(1);
+  const [tipo, setTipo] = useState("");
 
   const { data, isLoading } = useQuery<{ total: number; page: number; page_size: number; items: Client[] }>({
-    queryKey: ["clients", q, page],
-    queryFn: () => api.get("/clients", { params: { q: q || undefined, page, page_size: 50 } }).then((r) => r.data),
+    queryKey: ["clients", q, page, tipo],
+    queryFn: () => api.get("/clients", { params: { q: q || undefined, page, page_size: 50, tipo: tipo || undefined } }).then(r => r.data),
   });
 
   const totalPages = data ? Math.ceil(data.total / data.page_size) : 1;
 
+  const TipoBadge = ({ t }: { t: string }) => {
+    const c = TIPO_COLORS[t] ?? { bg: "#f3f4f6", text: "#374151" };
+    return <span className="badge" style={{ background: c.bg, color: c.text }}>{TIPO_LABELS[t] ?? t}</span>;
+  };
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Clientes</h1>
-          <p className="text-sm text-gray-500">{data?.total ?? "—"} clientes registrados</p>
+          <h1 style={{ fontSize: 20, fontWeight: 900, color: "#111", letterSpacing: "-.02em" }}>Clientes</h1>
+          <p style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{data?.total ?? "—"} clientes registrados</p>
         </div>
-        <Link href="/dashboard/clients/new" className="btn-primary flex items-center gap-2 text-sm w-fit">
-          <Plus className="h-4 w-4" /> Nuevo cliente
+        <Link href="/dashboard/clients/new" className="btn-primary" style={{ fontSize: 11, gap: 6 }}>
+          <Plus style={{ width: 14, height: 14 }} /> Nuevo cliente
         </Link>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          className="input pl-9 max-w-md"
-          placeholder="Buscar por nombre, RFC o teléfono..."
-          value={q}
-          onChange={(e) => { setQ(e.target.value); setPage(1); }}
-        />
+      {/* Search + tipo filter */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="search-wrap" style={{ maxWidth: 400 }}>
+          <Search className="search-icon" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, RFC o teléfono…"
+            value={q}
+            onChange={e => { setQ(e.target.value); setPage(1); }}
+            className="input"
+          />
+        </div>
+
+        <div className="filter-bar">
+          {FILTERS.map(f => (
+            <button
+              key={f}
+              onClick={() => { setTipo(f); setPage(1); }}
+              className={`filter-pill ${tipo === f ? "filter-pill-active" : "filter-pill-inactive"}`}
+            >
+              {f ? TIPO_LABELS[f] : "Todos"}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Nombre</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">RFC</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Tipo</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">Contacto</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Crédito</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Saldo</th>
+      {/* Content card */}
+      <div className="card" style={{ overflow: "hidden" }}>
+
+        {/* ── Mobile card list ── */}
+        <div className="md:hidden">
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ padding: "14px 16px", borderBottom: "1px solid #f0f0f0" }}>
+                <div style={{ height: 12, background: "#f0f0f0", borderRadius: 3, width: "55%", marginBottom: 8 }} />
+                <div style={{ height: 10, background: "#f5f5f5", borderRadius: 3, width: "35%" }} />
+              </div>
+            ))
+          ) : data?.items.length === 0 ? (
+            <div className="empty-state">
+              <Users style={{ width: 32, height: 32, opacity: .3 }} />
+              <p>{q ? `Sin resultados para "${q}"` : "Sin clientes"}</p>
+            </div>
+          ) : (
+            data?.items.map(c => (
+              <Link key={c.id} href={`/dashboard/clients/${c.id}`} className="mobile-row" style={{ display: "flex", textDecoration: "none" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 4 }}>
+                    {c.nombre}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <TipoBadge t={c.tipo} />
+                    {c.rfc && <span style={{ fontSize: 11, color: "#aaa", fontFamily: "monospace" }}>{c.rfc}</span>}
+                  </div>
+                  {(c.telefono || c.whatsapp) && (
+                    <p style={{ fontSize: 11, color: "#888", marginTop: 4 }}>{c.telefono ?? c.whatsapp}</p>
+                  )}
+                </div>
+                {c.credito_activo && (
+                  <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                    <p style={{ fontSize: 11, color: "#888" }}>Saldo</p>
+                    <p style={{ fontSize: 13, fontWeight: 800, color: Number(c.saldo_pendiente) > 0 ? "#c00" : "#16a34a" }}>
+                      {formatCurrency(c.saldo_pendiente)}
+                    </p>
+                  </div>
+                )}
+              </Link>
+            ))
+          )}
+        </div>
+
+        {/* ── Desktop table ── */}
+        <div className="hidden md:block overflow-x-auto">
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid #f0f0f0" }}>
+                <th style={{ padding: "10px 16px", textAlign: "left", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#aaa" }}>Nombre</th>
+                <th style={{ padding: "10px 16px", textAlign: "left", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#aaa" }} className="hidden lg:table-cell">RFC</th>
+                <th style={{ padding: "10px 16px", textAlign: "left", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#aaa" }}>Tipo</th>
+                <th style={{ padding: "10px 16px", textAlign: "left", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#aaa" }} className="hidden md:table-cell">Contacto</th>
+                <th style={{ padding: "10px 16px", textAlign: "right", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#aaa" }} className="hidden lg:table-cell">Límite</th>
+                <th style={{ padding: "10px 16px", textAlign: "right", fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#aaa" }} className="hidden lg:table-cell">Saldo</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody>
               {isLoading ? (
                 Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="px-4 py-3"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td></tr>
+                  <tr key={i} style={{ borderBottom: "1px solid #f8f8f8" }}>
+                    <td colSpan={6} style={{ padding: "12px 16px" }}>
+                      <div style={{ height: 12, background: "#f5f5f5", borderRadius: 3 }} />
+                    </td>
+                  </tr>
                 ))
               ) : data?.items.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-gray-400">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  <p>Sin clientes</p>
+                <tr><td colSpan={6}>
+                  <div className="empty-state">
+                    <Users style={{ width: 32, height: 32, opacity: .3 }} />
+                    <p>{q ? `Sin resultados para "${q}"` : "Sin clientes"}</p>
+                  </div>
                 </td></tr>
-              ) : data?.items.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <Link href={`/dashboard/clients/${c.id}`} className="font-medium text-gray-900 hover:text-brand-600">{c.nombre}</Link>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 font-mono text-xs hidden md:table-cell">{c.rfc ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <span className={`badge ${TIPO_COLORS[c.tipo]}`}>{TIPO_LABELS[c.tipo]}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{c.telefono ?? c.whatsapp ?? "—"}</td>
-                  <td className="px-4 py-3 text-right hidden lg:table-cell">
-                    {c.credito_activo ? (
-                      <div className="flex items-center justify-end gap-1 text-green-600">
-                        <CreditCard className="h-3.5 w-3.5" />
-                        <span className="text-xs">{formatCurrency(c.limite_credito)}</span>
-                      </div>
-                    ) : <span className="text-xs text-gray-400">—</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right hidden lg:table-cell">
-                    {c.credito_activo ? (
-                      <span className={Number(c.saldo_pendiente) > 0 ? "text-red-600 font-medium text-xs" : "text-green-600 text-xs"}>
-                        {formatCurrency(c.saldo_pendiente)}
-                      </span>
-                    ) : <span className="text-xs text-gray-400">—</span>}
-                  </td>
-                </tr>
-              ))}
+              ) : (
+                data?.items.map(c => (
+                  <tr key={c.id} style={{ borderBottom: "1px solid #f8f8f8", transition: "background .1s" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#fafafa")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                    <td style={{ padding: "12px 16px" }}>
+                      <Link href={`/dashboard/clients/${c.id}`} style={{ fontWeight: 600, color: "#111", textDecoration: "none" }}
+                        onMouseEnter={e => (e.currentTarget.style.color = "#e55c00")}
+                        onMouseLeave={e => (e.currentTarget.style.color = "#111")}>
+                        {c.nombre}
+                      </Link>
+                    </td>
+                    <td style={{ padding: "12px 16px", color: "#888", fontFamily: "monospace", fontSize: 12 }} className="hidden lg:table-cell">
+                      {c.rfc ?? "—"}
+                    </td>
+                    <td style={{ padding: "12px 16px" }}><TipoBadge t={c.tipo} /></td>
+                    <td style={{ padding: "12px 16px", color: "#666" }} className="hidden md:table-cell">
+                      {c.telefono ?? c.whatsapp ?? "—"}
+                    </td>
+                    <td style={{ padding: "12px 16px", textAlign: "right" }} className="hidden lg:table-cell">
+                      {c.credito_activo ? (
+                        <span style={{ fontSize: 12, color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+                          <CreditCard style={{ width: 13, height: 13 }} />
+                          {formatCurrency(c.limite_credito)}
+                        </span>
+                      ) : <span style={{ fontSize: 12, color: "#ccc" }}>—</span>}
+                    </td>
+                    <td style={{ padding: "12px 16px", textAlign: "right" }} className="hidden lg:table-cell">
+                      {c.credito_activo ? (
+                        <span style={{ fontSize: 12, fontWeight: 700, color: Number(c.saldo_pendiente) > 0 ? "#c00" : "#16a34a" }}>
+                          {formatCurrency(c.saldo_pendiente)}
+                        </span>
+                      ) : <span style={{ fontSize: 12, color: "#ccc" }}>—</span>}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
         {data && data.total > data.page_size && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
-            <span>Mostrando {(page - 1) * data.page_size + 1}–{Math.min(page * data.page_size, data.total)} de {data.total}</span>
-            <div className="flex gap-1">
-              <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40">
-                <ChevronLeft className="h-4 w-4" />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderTop: "1px solid #f0f0f0", fontSize: 12, color: "#888" }}>
+            <span>{(page - 1) * data.page_size + 1}–{Math.min(page * data.page_size, data.total)} de {data.total}</span>
+            <div style={{ display: "flex", gap: 4 }}>
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
+                style={{ padding: 8, borderRadius: 5, border: "1px solid #e4e4e4", background: "#fff", cursor: "pointer", display: "flex", opacity: page === 1 ? .4 : 1 }}>
+                <ChevronLeft style={{ width: 14, height: 14 }} />
               </button>
-              <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40">
-                <ChevronRight className="h-4 w-4" />
+              <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
+                style={{ padding: 8, borderRadius: 5, border: "1px solid #e4e4e4", background: "#fff", cursor: "pointer", display: "flex", opacity: page >= totalPages ? .4 : 1 }}>
+                <ChevronRight style={{ width: 14, height: 14 }} />
               </button>
             </div>
           </div>
