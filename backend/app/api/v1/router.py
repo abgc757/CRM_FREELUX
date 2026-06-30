@@ -1,5 +1,9 @@
 from fastapi import APIRouter
-from app.api.v1 import auth, users, products, clients, quotes, sales, documents, suppliers, purchases, inventory, collections, reports
+from app.api.v1 import (
+    auth, users, products, clients, quotes, sales, documents,
+    suppliers, purchases, inventory, collections, reports,
+    logistics, pos,
+)
 
 def _build_router(prefix: str) -> APIRouter:
     r = APIRouter(prefix=prefix)
@@ -15,6 +19,8 @@ def _build_router(prefix: str) -> APIRouter:
     r.include_router(inventory.router)
     r.include_router(collections.router)
     r.include_router(reports.router)
+    r.include_router(logistics.router)
+    r.include_router(pos.router)
     return r
 
 # Ruta canónica

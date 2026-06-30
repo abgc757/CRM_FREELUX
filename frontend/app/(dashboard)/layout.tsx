@@ -7,7 +7,7 @@ import { FreeluxLogo } from "@/components/FreeluxLogo";
 import {
   LayoutDashboard, Package, Users, FileText, CreditCard,
   ShoppingCart, Warehouse, AlertCircle, BarChart3,
-  LogOut, Menu, X,
+  LogOut, Menu, X, Truck, MonitorPlay,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +36,13 @@ const NAV_SECTIONS = [
       { href: "/dashboard/inventory",   label: "Inventario", icon: Warehouse,    roles: ["gerencia","administracion","almacen","compras"] },
       { href: "/dashboard/collections", label: "Cobranza",   icon: AlertCircle,  roles: ["gerencia","administracion"] },
       { href: "/dashboard/reports",     label: "Reportes",   icon: BarChart3,    roles: ["gerencia","administracion"] },
+    ],
+  },
+  {
+    title: "ERP",
+    items: [
+      { href: "/dashboard/logistics", label: "Logística",   icon: Truck,        roles: ["gerencia","administracion","almacen"] },
+      { href: "/dashboard/pos",       label: "Punto de Venta", icon: MonitorPlay, roles: ["gerencia","administracion","ventas"] },
     ],
   },
 ] as const;
